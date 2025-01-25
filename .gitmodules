@@ -1,0 +1,6 @@
+[submodule "3rd/strongswan"]
+	path = 3rd/strongswan
+	url = https://github.com/strongswan/strongswan.git
+[submodule "3rd/babeld"]
+	path = 3rd/babeld
+	url = https://github.com/jech/babeld.git
