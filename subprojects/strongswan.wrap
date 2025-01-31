@@ -1,0 +1,6 @@
+[wrap-git]
+url = https://github.com/strongswan/strongswan.git
+revision = d38eaa6dd71d65a894e3914d46eeb6d221937a7c
+depth = 1
+
+patch_directory=strongswan

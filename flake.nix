@@ -9,7 +9,17 @@
       in with pkgs; {
         devShells.default = mkShell {
           inputsFrom = [ strongswan ];
-          nativeBuildInputs = [ meson ];
+          packages = [
+            pkgs.python3
+          ];
+          nativeBuildInputs = [ meson ninja ];
+
+          shellHook = ''
+          if [ ! -d .venv ]; then
+            python -m venv .venv
+          fi
+          source .venv/bin/activate
+          '';
         };
       });
 }

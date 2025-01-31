@@ -1,1 +1,7 @@
 result
+*.egg-info
+build
+dist
+.venv
+subprojects/strongswan
+subprojects/babeld
