@@ -1,0 +1,16 @@
+[project]
+name = "aronet"
+version = "0.0.1"
+requires-python = ">= 3.10"
+dependencies = [
+    "vici",
+    "cryptography",
+    "pyroute2"
+]
+
+[build-system]
+requires = ["meson-python"]
+build-backend = "mesonpy"
+
+[project.scripts]
+aronet = "aronet.main:main"

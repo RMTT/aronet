@@ -4,4 +4,6 @@ build
 dist
 .venv
 subprojects/strongswan
-subprojects/babeld
+subprojects/bird
+__pycache__
+test.py

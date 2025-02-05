@@ -1,0 +1,50 @@
+[
+  {
+    "public_key": "-- raw pem of public key --",
+    "organization": "example",
+    "nodes": [
+      {
+        "common_name": "host-01",
+        "endpoints": [
+          {
+            "address": "2.2.2.2",
+            "port": 12345,
+          },
+          {
+            "address": "::1",
+            "port": 12345
+          }
+        ],
+        "remarks": {
+          "prefixs": [
+            "192.168.128.1/24"
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "public_key": "-- raw pem of public key --",
+    "organization": "example2",
+    "nodes": [
+      {
+        "common_name": "host-01",
+        "endpoints": [
+          {
+            "address": "1.1.1.2",
+            "port": 12345
+          },
+          {
+            "address": "::1",
+            "port": 12345
+          }
+        ],
+        "remarks": {
+          "prefixs": [
+            "192.168.129.1/24"
+          ]
+        }
+      }
+    ]
+  }
+]

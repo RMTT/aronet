@@ -9,16 +9,14 @@
       in with pkgs; {
         devShells.default = mkShell {
           inputsFrom = [ strongswan ];
-          packages = [
-            pkgs.python3
-          ];
+          packages = [ pkgs.python3 ncurses readline ];
           nativeBuildInputs = [ meson ninja ];
 
           shellHook = ''
-          if [ ! -d .venv ]; then
-            python -m venv .venv
-          fi
-          source .venv/bin/activate
+            if [ ! -d .venv ]; then
+              python -m venv .venv
+            fi
+            source .venv/bin/activate
           '';
         };
       });

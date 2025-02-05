@@ -1,0 +1,6 @@
+[wrap-git]
+url = https://gitlab.nic.cz/labs/bird.git
+revision = a8fa3f6b8d0a8235c9348cae290529d4dc2cad51
+depth = 1
+
+patch_directory=bird

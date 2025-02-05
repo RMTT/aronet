@@ -1,0 +1,15 @@
+{
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMC4CAQAwBQYDK2VwBCIEIAF/ZQ4YsMaErUbLI53OV8J+YpXZxHT9cB9dGdtnUkzK\n-----END PRIVATE KEY-----",
+  "organization": "test2",
+  "common_name": "sun",
+  "daemon": {
+  "prefixs": [
+    "192.168.129.1/24"
+  ]},
+  "endpoints": [
+    {
+      "address": "172.32.0.3",
+      "port": 12025
+    }
+  ]
+}

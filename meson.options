@@ -1,0 +1,2 @@
+option('strongswan', type : 'boolean', value : true, description : 'build with strongswan binary')
+option('bird', type : 'boolean', value : true, description : 'build with bird binary')

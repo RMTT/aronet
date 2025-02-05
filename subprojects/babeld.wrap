@@ -1,7 +1,0 @@
-[wrap-git]
-url = https://github.com/jech/babeld.git
-revision = 950992f282d6139ce543f225564a35ac564ca1c2
-depth = 1
-clone-recursive = true
-
-patch_directory=babeld

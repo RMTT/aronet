@@ -1,41 +1,40 @@
 project(
     'aronet',
     version: '0.0.1',
-    meson_version: '>=0.63.0',
+    meson_version: '>=1.1',
     default_options: [
-      'python.install_env=auto'
+      'prefix=/'
     ]
 )
 
 pymod = import('python')
-python = pymod.find_installation('python',
-  modules: ['vici', 'json']
-)
-python.dependency()
-
+python = pymod.find_installation('python')
 python_sources = [
-  'aronet/__init__.py'
+  'aronet/__init__.py',
+  'aronet/main.py',
+  'aronet/config.py',
+  'aronet/util.py',
+  'aronet/cmd/__init__.py',
+  'aronet/cmd/base.py',
+  'aronet/cmd/daemon.py',
+  'aronet/cmd/load.py',
+  'aronet/cmd/birdc.py',
+  'aronet/cmd/swanctl.py',
+  'aronet/daemon/__init__.py',
+  'aronet/daemon/strongswan.py',
+  'aronet/daemon/bird.py',
+  'aronet/strongswan/__init__.py',
+  'aronet/strongswan/client.py',
 ]
 
-python.install_sources(python_sources, subdir: 'aronet')
+python.install_sources(python_sources, preserve_path: true)
 
-# strongswan related
-subproject('strongswan')
+#strongswan related
+if get_option('strongswan')
+  subproject('strongswan')
+endif
 
-# babeld related
-subproject('babeld')
-
-custom_target('aronet',
-  input: ['aronet/main.py'],
-  command: ['cp', '@INPUT@', '@OUTPUT@'],
-  install: true,
-  install_dir: get_option('bindir'),
-  install_mode: 'r-xr-xr-x',
-  output: 'aronet')
-
-
-summary({'bindir': get_option('bindir'),
-        'libdir': get_option('libdir'),
-        'datadir': get_option('datadir'),
-        'libexecdir': get_option('libexecdir'),
-        })
+# bird related
+if get_option('bird')
+  subproject('bird')
+endif

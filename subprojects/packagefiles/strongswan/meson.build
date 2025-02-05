@@ -1,11 +1,15 @@
 project('strongswan', 'c', meson_version : '>=0.56.0')
 
+find_program('make', required: true)
+
 run_command('./autogen.sh', check: true)
 
-mod = import('unstable-external_project')
-
 configure_options = [
-  '--enable-static'
+  '--enable-static',
+  '--disable-shared',
+  '--enable-static',
+  '--enable-monolithic',
+  '--with-piddir=/var/run/aronet'
   ]
 
 if build_machine.system() == 'darwin'
@@ -18,16 +22,18 @@ if build_machine.system() == 'darwin'
     '--enable-osx-attr',
     '--disable-scripts'
     ]
-else
+elif build_machine.system() == 'linux'
   configure_options += []
 endif
 
 run_command('./configure', configure_options, check: true)
 
+pymod = import('python')
+python = pymod.find_installation('python')
 custom_target('strongswan',
-  command: ['./build.sh', '@CURRENT_SOURCE_DIR@', '@OUTPUT@'],
+  command: ['./build.sh', '@CURRENT_SOURCE_DIR@', '@OUTDIR@'],
   build_by_default: true,
   install: true,
-  install_dir: get_option('libexecdir') + '/aronet',
-  output: 'charon'
+  install_dir: python.get_install_dir() / 'aronet/libexec',
+  output: [ 'charon', '_updown', 'swanctl' ]
   )
