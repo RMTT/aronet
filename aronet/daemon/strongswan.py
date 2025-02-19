@@ -1,6 +1,5 @@
 from logging import Logger
 import os
-import tempfile
 import asyncio
 from typing import OrderedDict
 from pyroute2 import IPRoute
@@ -133,14 +132,11 @@ class Strongswan(Daemon):
         self._logger.info(f"[charon]: {line}")
 
     async def run(self):
-        self._conf = tempfile.NamedTemporaryFile()
-        self._conf.write(
-            Strongswan.CONF_TEMP.format(self._config.vici_socket_path).encode()
-        )
-        self._conf.flush()
+        with open(self._config.strongsconf_path, "w") as f:
+            f.write(Strongswan.CONF_TEMP.format(self._config.vici_socket_path))
 
         env = {}
-        env["STRONGSWAN_CONF"] = self._conf.name
+        env["STRONGSWAN_CONF"] = self._config.strongsconf_path
 
         self._logger.info("running charon...")
         self.process = await asyncio.create_subprocess_exec(

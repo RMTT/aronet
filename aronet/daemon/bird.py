@@ -1,11 +1,10 @@
+import asyncio
+import os
 from logging import Logger
 
 from aronet.config import Config
 from aronet.daemon import Daemon
 from aronet.util import read_stream
-import tempfile
-import asyncio
-import os
 
 
 class Bird(Daemon):
@@ -82,24 +81,27 @@ class Bird(Daemon):
                 if net.version == 4:
                     ipv4_networks += f"\nroute {net.with_prefixlen} unreachable;"
                 else:
-                    ipv6_networks += f"\nroute {net.with_prefixlen} unreachable;"
+                    ipv6_networks += (
+                        f"\nroute {net.with_prefixlen} from ::/0 unreachable;"
+                    )
 
-        self._conf = tempfile.NamedTemporaryFile()
-        self._conf.write(
-            Bird.CONF_TEMP.format(
-                route_table=self._config.route_table,
-                ipv4_networks=ipv4_networks,
-                ipv6_networks=ipv6_networks,
-            ).encode()
-        )
-        self._conf.flush()
+        with open(self._config.bird_conf_path, "w") as f:
+            f.write(
+                Bird.CONF_TEMP.format(
+                    route_table=self._config.route_table,
+                    ipv4_networks=ipv4_networks,
+                    ipv6_networks=ipv6_networks,
+                )
+            )
 
         self.clean = True
         self._logger.info("running bird...")
         self.process = await asyncio.create_subprocess_exec(
             self._config.bird_path,
             "-c",
-            self._conf.name,
+            self._config.bird_conf_path,
+            "-P",
+            self.__pidfile_path,
             "-f",
             stderr=asyncio.subprocess.PIPE,
             stdout=asyncio.subprocess.PIPE,
@@ -114,3 +116,15 @@ class Bird(Daemon):
         )
 
         await self.process.wait()
+
+    def info(self) -> str:
+        pid = None
+
+        if os.path.exists(self.__pidfile_path):
+            with open(self.__pidfile_path, "r") as f:
+                pid = f.read()
+
+        if pid is not None:
+            return f"bird is running, pid {pid}"
+
+        return "bird is not running"

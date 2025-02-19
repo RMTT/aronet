@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-set -e
+set -ex
 
 SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)
 
@@ -40,15 +40,15 @@ cleanup() {
     echo "cleanup..."
 
     echo "remove container moon.."
-    docker container rm -f moon
+    docker container rm -f moon || true
     echo "done!"
 
     echo "remove container sun.."
-    docker container rm -f sun
+    docker container rm -f sun || true
     echo "done!"
 
     echo "remove network aronet..."
-    docker network rm -f aronet
+    docker network rm -f aronet || true
     echo "done!"
 }
 
@@ -74,6 +74,10 @@ test_connectivity() {
     done
 
     docker exec moon ping -c 5 192.168.129.1
+    docker exec sun ping -c 5 192.168.128.1
+
+    docker exec moon aronet swanctl --list-sas
+    docker exec moon aronet swanctl --list-conns
 
     echo "moon and sun are successfully connectted!"
 }
@@ -82,3 +86,4 @@ cleanup
 setup
 load_conn
 test_connectivity
+cleanup

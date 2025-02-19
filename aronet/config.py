@@ -9,7 +9,6 @@ ENV_RUNTIME_DIR = "RUNTIME_DIR"
 
 
 class Config:
-
     def __init__(self, libexec_path) -> None:
         self.__libexec_path = libexec_path
         self.__custom_config = None
@@ -20,12 +19,20 @@ class Config:
         return os.getenv(ENV_CHARON_PATH, os.path.join(self.__libexec_path, "charon"))
 
     @property
+    def strongsconf_path(self):
+        return os.path.join(self.runtime_dir, "strongswan.conf")
+
+    @property
     def swanctl_path(self) -> str:
         return os.getenv(ENV_SWANCTL_PATH, os.path.join(self.__libexec_path, "swanctl"))
 
     @property
     def bird_path(self) -> str:
         return os.getenv(ENV_BIRD_PATH, os.path.join(self.__libexec_path, "bird"))
+
+    @property
+    def bird_conf_path(self):
+        return os.path.join(self.runtime_dir, "bird.conf")
 
     @property
     def birdc_path(self) -> str:
@@ -41,7 +48,7 @@ class Config:
 
     @property
     def vici_socket_path(self) -> str:
-        return "/var/run/aronet.vici"
+        return os.path.join(self.runtime_dir, "charon.vici")
 
     @property
     def custom_config(self):
