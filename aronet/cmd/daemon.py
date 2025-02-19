@@ -1,12 +1,10 @@
 import argparse
 import asyncio
-import atexit
 import ipaddress
 import json
 import os
 from logging import Logger
 from socket import AF_INET, AF_INET6
-import sys
 
 from pyroute2 import IPRoute
 
