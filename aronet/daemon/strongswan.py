@@ -1,14 +1,17 @@
-from logging import Logger
-import os
 import asyncio
+import os
+import socket
+import concurrent.futures
+from asyncio.exceptions import CancelledError
+from logging import Logger
 from typing import OrderedDict
+
 from pyroute2 import IPRoute
 from pyroute2.netlink.rtnl.ifinfmsg import IFF_MULTICAST, IFF_UP
 
 from aronet.config import Config
 from aronet.daemon import Daemon
 from aronet.strongswan.client import Client
-
 from aronet.util import read_stream
 
 
@@ -49,9 +52,10 @@ class Strongswan(Daemon):
     def __init__(self, config: Config, logger: Logger) -> None:
         super().__init__(config, logger)
 
+        self._pidfile_path = os.path.join(config.runtime_dir, "charon.pid")
         self.__charon_path = config.charon_path
-        self.__pidfile_path = os.path.join(config.runtime_dir, "charon.pid")
         self.__vici = None
+        self.__tasks = None
 
         self.__event_handlers = {"ike-updown": self.__updown}
 
@@ -62,12 +66,21 @@ class Strongswan(Daemon):
     def __vici_connect(self):
         self.__vici = Client(self._config)
 
-    async def __listen(self, event_types: list[str]):
+    def __listen(self, event_types: list[str]):
         if self.__vici:
-            for _type, msg in self.__vici.listen(event_types):
-                _type = bytes(_type).decode()
+            try:
+                for _type, msg in self.__vici.listen(event_types):
+                    _type = bytes(_type).decode()
+                    self.__event_handlers[_type](msg)
+            except socket.error as e:
+                if not self._config.should_exit:
+                    raise e
 
-                self.__event_handlers[_type](msg)
+    async def __async_listen(self, event_types: list[str]):
+        with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
+            await asyncio.get_running_loop().run_in_executor(
+                executor, self.__listen, event_types
+            )
 
     def __setup_iface(self, ifname: str, xfrm_id: int, master: int, ipr: IPRoute):
         self._logger.info(f"trying to create xfrm interface {ifname}...")
@@ -131,6 +144,29 @@ class Strongswan(Daemon):
     def __process_output(self, line: str):
         self._logger.info(f"[charon]: {line}")
 
+    async def exit_callback(self):
+        self._logger.info("terminating strongswan...")
+
+        if self.process.returncode is None:
+            self.process.terminate()
+        if self.process.returncode is None:
+            self.process.wait()
+
+        if self.__tasks and not self.__tasks.done:
+            self._logger.info(
+                "some tasks in strongswan still running, wait 5 seconds..."
+            )
+            await asyncio.sleep(5)
+
+            try:
+                self.__tasks.cancel()
+            except CancelledError:
+                pass
+
+    def __del__(self):
+        super().__del__()
+        self._logger.debug("delete strongswan object in daemon")
+
     async def run(self):
         with open(self._config.strongsconf_path, "w") as f:
             f.write(Strongswan.CONF_TEMP.format(self._config.vici_socket_path))
@@ -165,13 +201,13 @@ class Strongswan(Daemon):
 
         self._clean = True
 
-        await asyncio.gather(
-            read_stream(self.process.stdout, self.__process_output),
-            read_stream(self.process.stderr, self.__process_output),
-            self.__listen(self.__events),
+        self.__tasks = asyncio.gather(
+            read_stream(self.process.stdout, self.__process_output, self._config),
+            read_stream(self.process.stderr, self.__process_output, self._config),
+            self.__async_listen(self.__events),
         )
 
-        await self.process.wait()
+        await self.__tasks
 
     def info(self) -> str:
         pid = None

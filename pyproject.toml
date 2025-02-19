@@ -5,7 +5,8 @@ requires-python = ">= 3.10"
 dependencies = [
     "vici",
     "cryptography",
-    "pyroute2"
+    "pyroute2",
+    "jsonschema"
 ]
 
 [build-system]

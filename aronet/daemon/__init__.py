@@ -1,10 +1,11 @@
+from abc import ABCMeta, abstractmethod
 from logging import Logger
 import os
 
 from aronet.config import Config
 
 
-class Daemon:
+class Daemon(metaclass=ABCMeta):
     def __init__(self, config: Config, logger: Logger) -> None:
         self._config = config
         self._logger = logger
@@ -17,9 +18,10 @@ class Daemon:
         if not self._clean:
             return
 
-        if self.process and self.process.returncode is None:
-            self._logger.info("exit")
-            self.process.terminate()
-
+        self._logger.debug(f"will delete file: {self._pidfile_path}")
         if self._pidfile_path and os.path.exists(self._pidfile_path):
             os.remove(self._pidfile_path)
+
+    @abstractmethod
+    def exit_callback(self):
+        pass

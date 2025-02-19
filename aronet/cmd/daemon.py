@@ -1,17 +1,19 @@
 import argparse
 import asyncio
+import atexit
+import ipaddress
+import json
+import os
 from logging import Logger
+from socket import AF_INET, AF_INET6
+import sys
 
 from pyroute2 import IPRoute
+
 from aronet.cmd.base import BaseCommand
 from aronet.config import Config
 from aronet.daemon.bird import Bird
 from aronet.daemon.strongswan import Strongswan
-import os
-import json
-from socket import AF_INET, AF_INET6
-import ipaddress
-
 from aronet.util import netlink_ignore_exists
 
 
@@ -43,7 +45,18 @@ class DaemonCommand(BaseCommand):
             os.remove(self.__pidfile_path)
 
     async def __run_daemon(self):
-        await asyncio.gather(self.__strongswan.run(), self.__bird.run())
+        await asyncio.gather(self.__strongswan.run(), self.__bird.run(), self.__idle())
+
+    async def __idle(self):
+        while not self.config.should_exit:
+            await asyncio.sleep(2)
+
+        self.logger.info("will terminate strongswan and bird...")
+        await self.__strongswan.exit_callback()
+        await self.__bird.exit_callback()
+
+        del self.__strongswan
+        del self.__bird
 
     def run(self, args: argparse.Namespace) -> bool:
         match args.action:
@@ -59,7 +72,8 @@ class DaemonCommand(BaseCommand):
 
                 loop = asyncio.get_event_loop()
                 loop.run_until_complete(self.__run_daemon())
-                loop.close()
+                if not loop.is_closed:
+                    loop.close()
             case "info":
                 if os.path.exists(self.__pidfile_path):
                     with open(self.__pidfile_path, "r") as f:
@@ -69,6 +83,7 @@ class DaemonCommand(BaseCommand):
                     self.logger.info("aronet is not running")
 
                 self.logger.info(self.__strongswan.info())
+                self.logger.info(self.__bird.info())
 
         return True
 
@@ -111,7 +126,7 @@ class DaemonCommand(BaseCommand):
             ipr.flush_addr(index=ifs[0], family=AF_INET6)
 
             if self.config.custom_config is None:
-                raise Exception("need config")
+                raise Exception("seems there is no configuration file")
 
             route_networks = []
             for prefix in self.config.custom_config["daemon"]["prefixs"]:

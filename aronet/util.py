@@ -4,6 +4,8 @@ from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.backends import default_backend
 from pyroute2 import NetlinkError
 
+from aronet.config import Config
+
 
 def build_id(organization: str, common_name: str, endpoint: dict) -> str:
     id = f"O={organization},CN={common_name}"
@@ -70,8 +72,8 @@ def same_address_family(local: dict, remote: dict) -> bool:
     return local_family == remote_family
 
 
-async def read_stream(stream, callback: Callable):
-    while True:
+async def read_stream(stream, callback: Callable, config: Config):
+    while not config.should_exit:
         line = await stream.readline()
         if not line:
             break

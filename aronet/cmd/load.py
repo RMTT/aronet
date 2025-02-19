@@ -126,10 +126,13 @@ class LoadCommand(BaseCommand):
 
     def run(self, args: argparse.Namespace) -> bool:
         with open(args.config, "r") as f:
-            c = json.loads(f.read())
+            self.config.custom_config = json.loads(f.read())
 
         with open(args.registry, "r") as f:
-            r = json.loads(f.read())
+            self.config.custom_registry = json.loads(f.read())
+
+        c = self.config.custom_config
+        r = self.config.custom_registry
 
         if not str(c["private_key"]).startswith("-----BEGIN PRIVATE KEY-----"):
             with open(c["private_key"], "r") as f:

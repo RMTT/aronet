@@ -1,4 +1,5 @@
 import asyncio
+from asyncio.exceptions import CancelledError
 import os
 from logging import Logger
 
@@ -67,10 +68,32 @@ class Bird(Daemon):
 
     def __init__(self, config: Config, logger: Logger) -> None:
         super().__init__(config, logger)
-        self.__pidfile_path = os.path.join(self._config.runtime_dir, "bird.pid")
+        self._pidfile_path = os.path.join(self._config.runtime_dir, "bird.pid")
+        self.__tasks = None
 
     def __process_output(self, line: str):
         self._logger.info(f"[bird]: {line}")
+
+    async def exit_callback(self):
+        self._logger.info("terminating bird...")
+
+        if self.process.returncode is None:
+            self.process.terminate()
+        if self.process.returncode is None:
+            self.process.wait()
+
+        if self.__tasks and not self.__tasks.done:
+            self._logger.info("some tasks in bird still running, wait 5 seconds...")
+            await asyncio.sleep(5)
+
+            try:
+                self.__tasks.cancel()
+            except CancelledError:
+                pass
+
+    def __del__(self):
+        super().__del__()
+        self._logger.debug("delete bird object in daemon")
 
     async def run(self):
         ipv4_networks = ""
@@ -94,14 +117,14 @@ class Bird(Daemon):
                 )
             )
 
-        self.clean = True
+        self._clean = True
         self._logger.info("running bird...")
         self.process = await asyncio.create_subprocess_exec(
             self._config.bird_path,
             "-c",
             self._config.bird_conf_path,
             "-P",
-            self.__pidfile_path,
+            self._pidfile_path,
             "-f",
             stderr=asyncio.subprocess.PIPE,
             stdout=asyncio.subprocess.PIPE,
@@ -110,18 +133,18 @@ class Bird(Daemon):
         if self.process.returncode:
             raise Exception(f"bird exited, returncode: {self.process.returncode}")
 
-        await asyncio.gather(
-            read_stream(self.process.stdout, self.__process_output),
-            read_stream(self.process.stderr, self.__process_output),
+        self.__tasks = asyncio.gather(
+            read_stream(self.process.stdout, self.__process_output, self._config),
+            read_stream(self.process.stderr, self.__process_output, self._config),
         )
 
-        await self.process.wait()
+        await self.__tasks
 
     def info(self) -> str:
         pid = None
 
-        if os.path.exists(self.__pidfile_path):
-            with open(self.__pidfile_path, "r") as f:
+        if os.path.exists(self._pidfile_path):
+            with open(self._pidfile_path, "r") as f:
                 pid = f.read()
 
         if pid is not None:

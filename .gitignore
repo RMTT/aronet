@@ -7,3 +7,4 @@ subprojects/strongswan
 subprojects/bird
 __pycache__
 test.py
+.ruff_cache
