@@ -128,7 +128,7 @@ class Config:
 
     @property
     def updown_path(self) -> str:
-        return os.getenv(ENV_UPDOWN_PATH, os.path.join(self.__libexec_path, "_updown"))
+        return os.getenv(ENV_UPDOWN_PATH, os.path.join(self.__libexec_path, "updown.sh"))
 
     @property
     def runtime_dir(self) -> str:

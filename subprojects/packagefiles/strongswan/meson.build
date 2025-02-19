@@ -45,5 +45,5 @@ custom_target('strongswan',
   build_by_default: true,
   install: true,
   install_dir: python.get_install_dir() / 'aronet/libexec',
-  output: [ 'charon', '_updown', 'swanctl' ]
+  output: [ 'charon', 'swanctl' ]
   )

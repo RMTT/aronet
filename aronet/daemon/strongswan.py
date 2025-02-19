@@ -57,7 +57,7 @@ class Strongswan(Daemon):
         self.__vici = None
         self.__tasks = None
 
-        self.__event_handlers = {"ike-updown": self.__updown}
+        self.__event_handlers = {}
 
         self.__events = []
         for e, _ in self.__event_handlers.items():
@@ -67,6 +67,12 @@ class Strongswan(Daemon):
         self.__vici = Client(self._config)
 
     def __listen(self, event_types: list[str]):
+        """
+        listen to event of vici
+        although vici support 'ike-updown' event to up and down the interfaces(same to updown script),
+        the response speed of 'ike-updown' event is much slower than updown script's, so i prefer
+        updown script
+        """
         if self.__vici:
             try:
                 for _type, msg in self.__vici.listen(event_types):
@@ -101,8 +107,10 @@ class Strongswan(Daemon):
             flags=old_flags | IFF_MULTICAST | IFF_UP,
         )
 
-    # response for ike-updown event
     def __updown(self, msg: OrderedDict):
+        """
+        response for ike-updown event
+        """
         up = False
         data = None
         for k, d in msg.items():
@@ -172,6 +180,7 @@ class Strongswan(Daemon):
             f.write(Strongswan.CONF_TEMP.format(self._config.vici_socket_path))
 
         env = {}
+        env.update(os.environ)
         env["STRONGSWAN_CONF"] = self._config.strongsconf_path
 
         self._logger.info("running charon...")

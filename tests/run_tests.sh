@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-#set -e
+set -e
 
 SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)
 
@@ -55,7 +55,6 @@ cleanup() {
 load_conn() {
     echo "trying to load connections in moon..."
     docker exec moon aronet load -c /config/moon/config.json -r /config/registry.json
-    docker logs moon
     echo "done!"
 
     echo "trying to load connections in sun..."
@@ -64,14 +63,34 @@ load_conn() {
 }
 
 test_connectivity() {
+    max_retries=20
+
+    current_retries=0
     while ! (docker exec sun ip a | grep 'aronet-.*'); do
         echo "wait connections establised in node sun..."
         sleep 5
+
+        current_retries=$((current_retries + 1))
+
+        if [ $max_retries -eq $current_retries ]; then
+            echo "wait too long..."
+            docker logs sun
+            exit 1
+        fi
     done
 
+    current_retries=0
     while ! (docker exec moon ip a | grep 'aronet-.*'); do
         echo "wait connections establised in node moon..."
         sleep 5
+
+        current_retries=$((current_retries + 1))
+
+        if [ $max_retries -eq $current_retries ]; then
+            echo "wait too long..."
+            docker logs moon
+            exit 1
+        fi
     done
 
     docker exec moon ping -c 5 192.168.129.1

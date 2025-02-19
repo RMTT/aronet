@@ -11,6 +11,24 @@ env:
   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
 jobs:
+  test:
+    runs-on: ubuntu-24.04
+    services:
+      docker:
+        image: docker:dind
+        options: --privileged
+        ports:
+          - 2375:2375
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: run tests
+        run: |
+          sudo apt update
+          sudo apt install -y linux-modules-extra-$(uname -r)
+          sudo modprobe vrf
+          docker build . -t aronet:test
+          ./tests/run_tests.sh
   build-and-push-image:
     runs-on: ubuntu-latest
     needs: test

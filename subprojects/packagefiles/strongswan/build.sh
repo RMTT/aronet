@@ -9,4 +9,3 @@ make -j
 
 cp src/charon/charon "$output_dir"
 cp src/swanctl/swanctl "$output_dir"
-cp src/_updown/_updown "$output_dir"
