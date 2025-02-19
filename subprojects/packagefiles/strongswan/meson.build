@@ -9,7 +9,17 @@ configure_options = [
   '--disable-shared',
   '--enable-static',
   '--enable-monolithic',
-  '--with-piddir=/var/run/aronet'
+  '--with-piddir=/var/run/aronet',
+  '--disable-x509',
+  '--disable-revocation',
+  '--disable-constraints',
+  '--disable-pgp',
+  '--disable-dnskey',
+  '--disable-sshkey',
+  '--disable-xcbc',
+  '--disable-cmac',
+  '--disable-resolve',
+  '--disable-xauth-generic'
   ]
 
 if build_machine.system() == 'darwin'
