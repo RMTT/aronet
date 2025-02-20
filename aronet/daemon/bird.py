@@ -44,7 +44,7 @@ class Bird(Daemon):
         }}
 
         protocol babel {{
-          vrf "aronet";
+          vrf "{vrf_master}";
           ipv6 sadr {{
             export all;
             import all;
@@ -54,7 +54,7 @@ class Bird(Daemon):
             import all;
           }};
           randomize router id;
-          interface "aronet-*" {{
+          interface "{vrf_master}-*" {{
             type tunnel;
             rxcost 32;
             hello interval 20 s;
@@ -112,6 +112,7 @@ class Bird(Daemon):
             f.write(
                 Bird.CONF_TEMP.format(
                     route_table=self._config.route_table,
+                    vrf_master=self._config.ifname,
                     ipv4_networks=ipv4_networks,
                     ipv6_networks=ipv6_networks,
                 )

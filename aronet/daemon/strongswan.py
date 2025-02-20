@@ -98,7 +98,7 @@ class Strongswan(Daemon):
             master=master,
         )
 
-        iface = ipr.get_links(ifname="aronet")[0]
+        iface = ipr.get_links(ifname=self._config.ifname)[0]
         old_flags = iface["flags"]
         ipr.link(
             "set",
@@ -124,11 +124,11 @@ class Strongswan(Daemon):
         if_id_in = int(bytes(data["if-id-in"]).decode())
         if_id_out = int(bytes(data["if-id-out"]).decode())
 
-        if_name_in = f"aronet-{if_id_in}"
-        if_name_out = f"aronet-{if_id_out}"
+        if_name_in = f"{self._config.ifname}-{if_id_in}"
+        if_name_out = f"{self._config.ifname}-{if_id_out}"
 
         with IPRoute() as ipr:
-            ifs = ipr.link_lookup(ifname="aronet")
+            ifs = ipr.link_lookup(ifname=self._config.ifname)
 
             if not ifs:
                 raise Exception("aronet interface failed to find")

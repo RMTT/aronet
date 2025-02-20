@@ -35,7 +35,7 @@ class LoadCommand(BaseCommand):
                 ipr.route(
                     "add",
                     dst=net.with_prefixlen,
-                    oif=ipr.link_lookup(ifname="aronet"),
+                    oif=ipr.link_lookup(ifname=self.config.ifname),
                 )
 
     def __load_conn(self, config: dict, registry: dict):

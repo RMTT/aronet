@@ -5,11 +5,12 @@ import json
 import os
 from logging import Logger
 from socket import AF_INET, AF_INET6
+from stat import S_IXUSR
 
 from pyroute2 import IPRoute
 
 from aronet.cmd.base import BaseCommand
-from aronet.config import Config
+from aronet.config import UPDOWN_TEMPLATE, Config
 from aronet.daemon.bird import Bird
 from aronet.daemon.strongswan import Strongswan
 from aronet.util import netlink_ignore_exists
@@ -92,6 +93,10 @@ class DaemonCommand(BaseCommand):
         with open(self.__pidfile_path, "w") as f:
             f.write("{}".format(os.getpid()))
 
+        with open(self.config.updown_path, "w") as f:
+            f.write(UPDOWN_TEMPLATE.format(vrf_master=self.config.ifname))
+        os.chmod(self.config.updown_path, S_IXUSR)
+
         # # create route table
         with IPRoute() as ipr:
             netlink_ignore_exists(
@@ -109,13 +114,13 @@ class DaemonCommand(BaseCommand):
             netlink_ignore_exists(
                 lambda: ipr.link(
                     "add",
-                    ifname="aronet",
+                    ifname=self.config.ifname,
                     kind="vrf",
                     vrf_table=self.config.route_table,
                 )
             )
 
-            ifs = ipr.link_lookup(ifname="aronet")
+            ifs = ipr.link_lookup(ifname=self.config.ifname)
 
             if not ifs:
                 raise Exception("aronet interface failed to create")
@@ -142,7 +147,7 @@ class DaemonCommand(BaseCommand):
                 )
                 route_networks.append(net)
 
-            ipr.link("set", ifname="aronet", state="up")
+            ipr.link("set", ifname=self.config.ifname, state="up")
             self.config.route_networks = route_networks
 
         self.__clean = True

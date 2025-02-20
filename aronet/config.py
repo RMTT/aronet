@@ -20,7 +20,9 @@ _CONFIG_SCHEMA = {
                 "prefixs": {
                     "type": "array",
                     "items": {"type": "string"},
-                }
+                },
+                "ifname": {"type": "string"},
+                "route_table": {"type": "integer"},
             },
             "required": ["prefixs"],
         },
@@ -87,6 +89,22 @@ _REGISTRY_SCHEMA = {
 }
 
 
+UPDOWN_TEMPLATE = """
+#!/usr/bin/env bash
+
+LINK={vrf_master}-$(printf '%08x\n' "$PLUTO_IF_ID_OUT")
+case "$PLUTO_VERB" in
+up-client)
+    ip link add "$LINK" type xfrm if_id "$PLUTO_IF_ID_OUT"
+    ip link set "$LINK" master {vrf_master} multicast on mtu 1400 up
+    ;;
+down-client)
+    ip link del "$LINK"
+    ;;
+esac
+"""
+
+
 class Config:
     _instance = None
 
@@ -128,9 +146,7 @@ class Config:
 
     @property
     def updown_path(self) -> str:
-        return os.getenv(
-            ENV_UPDOWN_PATH, os.path.join(self.__libexec_path, "updown.sh")
-        )
+        return os.getenv(ENV_UPDOWN_PATH, os.path.join(self.runtime_dir, "updown"))
 
     @property
     def runtime_dir(self) -> str:
@@ -161,6 +177,13 @@ class Config:
 
     @property
     def route_table(self) -> int:
+        if (
+            self.custom_config
+            and "daemon" in self.custom_config
+            and "route_table" in self.custom_config["daemon"]
+        ):
+            return self.custom_config["route_table"]
+
         return 128
 
     @property
@@ -178,3 +201,14 @@ class Config:
     @should_exit.setter
     def should_exit(self, value):
         self.__should_exit = value
+
+    @property
+    def ifname(self) -> str:
+        if (
+            self.custom_config
+            and "daemon" in self.custom_config
+            and "ifname" in self.custom_config["daemon"]
+        ):
+            return self.custom_config["ifname"]
+
+        return "aronet"

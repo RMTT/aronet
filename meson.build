@@ -25,7 +25,6 @@ python_sources = [
   'aronet/daemon/bird.py',
   'aronet/strongswan/__init__.py',
   'aronet/strongswan/client.py',
-  'aronet/libexec/updown.sh',
 ]
 
 python.install_sources(python_sources, preserve_path: true)

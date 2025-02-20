@@ -1,6 +1,8 @@
 [project]
 name = "aronet"
-version = "0.0.1"
+description = "Auto routed full mesh overlay networks."
+readme = "README.md"
+version = "v0.1-alpha1"
 requires-python = ">= 3.10"
 dependencies = [
     "vici",
@@ -8,6 +10,14 @@ dependencies = [
     "pyroute2",
     "jsonschema"
 ]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Programming Language :: Python"
+]
+
+[project.urls]
+Homepage = "https://github.com/RMTT/aronet"
+Repository = "https://github.com/RMTT/aronet.git"
 
 [build-system]
 requires = ["meson-python"]
