@@ -1,11 +1,15 @@
 {
-  "private_key": "./test/config/moon/private.pem",
+  "private_key": "/home/mt/Projects/aronet/example/config.json",
   "organization": "example",
   "common_name": "host-01",
   "daemon": {
     "prefixs": [
       "192.168.128.1/24",
       "240e::1/60"
+    ],
+    "addresses": [
+      "192.168.128.1",
+      "240e::1"
     ]
   },
   "endpoints": [

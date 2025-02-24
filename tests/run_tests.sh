@@ -14,6 +14,7 @@ setup() {
         --cap-add NET_ADMIN --cap-add SYS_MODULE --cap-add SYS_ADMIN \
         --security-opt apparmor=unconfined --security-opt seccomp=unconfined \
         -d \
+        -it \
         --name moon \
         --hostname moon \
         --net aronet \
@@ -27,6 +28,7 @@ setup() {
         --cap-add NET_ADMIN --cap-add SYS_MODULE --cap-add SYS_ADMIN \
         --security-opt apparmor=unconfined --security-opt seccomp=unconfined \
         -d \
+        -it \
         --name sun \
         --hostname sun \
         --net aronet \
@@ -54,45 +56,15 @@ cleanup() {
 
 load_conn() {
     echo "trying to load connections in moon..."
-    docker exec moon aronet load -c /config/moon/config.json -r /config/registry.json
+    docker exec moon aronet load -r /config/registry.json
     echo "done!"
 
     echo "trying to load connections in sun..."
-    docker exec sun aronet load -c /config/sun/config.json -r /config/registry.json
+    docker exec sun aronet load -r /config/registry.json
     echo "done!"
 }
 
 test_connectivity() {
-    max_retries=20
-
-    current_retries=0
-    while ! (docker exec sun ip a | grep 'aronet-.*'); do
-        echo "wait connections establised in node sun..."
-        sleep 5
-
-        current_retries=$((current_retries + 1))
-
-        if [ $max_retries -eq $current_retries ]; then
-            echo "wait too long..."
-            docker logs sun
-            exit 1
-        fi
-    done
-
-    current_retries=0
-    while ! (docker exec moon ip a | grep 'aronet-.*'); do
-        echo "wait connections establised in node moon..."
-        sleep 5
-
-        current_retries=$((current_retries + 1))
-
-        if [ $max_retries -eq $current_retries ]; then
-            echo "wait too long..."
-            docker logs moon
-            exit 1
-        fi
-    done
-
     docker exec moon ping -c 5 192.168.129.1
     docker exec sun ping -c 5 192.168.128.1
 
@@ -104,6 +76,8 @@ test_connectivity() {
 
 cleanup
 setup
+sleep 2
 load_conn
+sleep 2
 test_connectivity
-cleanup
+#cleanup

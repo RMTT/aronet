@@ -1,4 +1,5 @@
 import ipaddress
+import json
 from typing import Callable
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.backends import default_backend
@@ -87,3 +88,11 @@ def netlink_ignore_exists(callback: Callable, *args, **kwargs):
         # ignore if netlink exists
         if e.code != 17:
             raise e
+
+
+def dump_message(data: dict) -> bytes:
+    return (json.dumps(data) + "\n").encode()
+
+
+def setup_interfaces(use_netns: bool):
+    pass

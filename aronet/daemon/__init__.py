@@ -4,6 +4,17 @@ import os
 
 from aronet.config import Config
 
+ACTION_LOAD_CONNS = 1
+ACTION_LOAD_CONFIG = 2
+
+MESSAGE_SEPARATOR = "\n"
+
+
+class InternalMessage:
+    def __init__(self, action: str, data: dict) -> None:
+        self.action = action
+        self.data = data
+
 
 class Daemon(metaclass=ABCMeta):
     def __init__(self, config: Config, logger: Logger) -> None:
@@ -12,6 +23,7 @@ class Daemon(metaclass=ABCMeta):
         self._clean = False
         self._pidfile_path = None
 
+        self.actions = 0
         self.process = None
 
     def __del__(self):
@@ -24,4 +36,7 @@ class Daemon(metaclass=ABCMeta):
 
     @abstractmethod
     def exit_callback(self):
+        pass
+
+    async def handle_actions(self, msg: InternalMessage):
         pass

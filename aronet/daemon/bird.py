@@ -1,7 +1,9 @@
 import asyncio
-from asyncio.exceptions import CancelledError
 import os
+from asyncio.exceptions import CancelledError
 from logging import Logger
+
+from pyroute2.netns import popns, pushns
 
 from aronet.config import Config
 from aronet.daemon import Daemon
@@ -20,7 +22,7 @@ class Bird(Daemon):
         protocol kernel {{
           kernel table {route_table};
           ipv6 sadr {{
-            export all;
+            export where source = RTS_BABEL;
             import none;
 		  }};
         }}
@@ -28,7 +30,7 @@ class Bird(Daemon):
         protocol kernel {{
           kernel table {route_table};
           ipv4 {{
-            export all;
+            export where source = RTS_BABEL;
             import none;
 		  }};
         }}
@@ -44,7 +46,7 @@ class Bird(Daemon):
         }}
 
         protocol babel {{
-          vrf "{vrf_master}";
+          {vrf_statement};
           ipv6 sadr {{
             export all;
             import all;
@@ -54,7 +56,7 @@ class Bird(Daemon):
             import all;
           }};
           randomize router id;
-          interface "{vrf_master}-*" {{
+          interface "{prefix}-*" {{
             type tunnel;
             rxcost 32;
             hello interval 20 s;
@@ -102,17 +104,32 @@ class Bird(Daemon):
         if self._config.route_networks:
             for net in self._config.route_networks:
                 if net.version == 4:
-                    ipv4_networks += f"\nroute {net.with_prefixlen} unreachable;"
+                    if self._config.use_netns:
+                        ipv4_networks += (
+                            f'\nroute {net.with_prefixlen} via "{self._config.ifname}";'
+                        )
+                    else:
+                        ipv4_networks += f"\nroute {net.with_prefixlen} unreachable;"
                 else:
-                    ipv6_networks += (
-                        f"\nroute {net.with_prefixlen} from ::/0 unreachable;"
-                    )
+                    if self._config.use_netns:
+                        ipv6_networks += f'\nroute {net.with_prefixlen} from ::/0 via "{self._config.ifname}";'
+                    else:
+                        ipv6_networks += (
+                            f"\nroute {net.with_prefixlen} from ::/0 unreachable;"
+                        )
 
         with open(self._config.bird_conf_path, "w") as f:
+            vrf_statement = f'vrf "{self._config.ifname}"'
+            route_table = self._config.route_table
+            if self._config.use_netns:
+                vrf_statement = ""
+                route_table = 254
+
             f.write(
                 Bird.CONF_TEMP.format(
-                    route_table=self._config.route_table,
-                    vrf_master=self._config.ifname,
+                    route_table=route_table,
+                    vrf_statement=vrf_statement,
+                    prefix=self._config.tunnel_if_prefix,
                     ipv4_networks=ipv4_networks,
                     ipv6_networks=ipv6_networks,
                 )
@@ -120,6 +137,9 @@ class Bird(Daemon):
 
         self._clean = True
         self._logger.info("running bird...")
+
+        if self._config.use_netns:
+            pushns(self._config.netns_name)
         self.process = await asyncio.create_subprocess_exec(
             self._config.bird_path,
             "-c",
@@ -130,6 +150,8 @@ class Bird(Daemon):
             stderr=asyncio.subprocess.PIPE,
             stdout=asyncio.subprocess.PIPE,
         )
+        if self._config.use_netns:
+            popns()
 
         if self.process.returncode:
             raise Exception(f"bird exited, returncode: {self.process.returncode}")

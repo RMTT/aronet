@@ -3,9 +3,13 @@
   "organization": "test1",
   "common_name": "moon",
   "daemon": {
-  "prefixs": [
-    "192.168.128.1/24"
-  ]},
+    "prefixs": [
+      "192.168.128.1/24"
+    ],
+    "addresses": [
+      "192.168.128.1"
+    ]
+  },
   "endpoints": [
     {
       "address": "172.32.0.2",

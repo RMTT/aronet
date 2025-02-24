@@ -1,4 +1,5 @@
 import os
+
 from jsonschema import validate
 
 ENV_CHARON_PATH = "CHARON_PATH"
@@ -21,10 +22,15 @@ _CONFIG_SCHEMA = {
                     "type": "array",
                     "items": {"type": "string"},
                 },
+                "addresses": {
+                    "type": "array",
+                    "items": {"type": "string"},
+                },
                 "ifname": {"type": "string"},
                 "route_table": {"type": "integer"},
+                "use_netns": {"type": "boolean"},
             },
-            "required": ["prefixs"],
+            "required": ["prefixs", "addresses"],
         },
         "endpoints": {
             "type": "array",
@@ -92,16 +98,39 @@ _REGISTRY_SCHEMA = {
 UPDOWN_TEMPLATE = """
 #!/usr/bin/env bash
 
-LINK={vrf_master}-$(printf '%08x\n' "$PLUTO_IF_ID_OUT")
+LINK={prefix}-$(printf '%08x\n' "$PLUTO_IF_ID_OUT")
 case "$PLUTO_VERB" in
 up-client)
     ip link add "$LINK" type xfrm if_id "$PLUTO_IF_ID_OUT"
-    ip link set "$LINK" master {vrf_master} multicast on mtu 1400 up
+    ip link set "$LINK" multicast on mtu 1400 up
+    {vrf_statement}
     ;;
 down-client)
     ip link del "$LINK"
     ;;
 esac
+"""
+
+NFT_INIT_TEMPLATE = """
+table ip aronet {{
+	chain prerouting {{
+		type nat hook prerouting priority 0; policy accept;
+	}}
+
+    chain postrouting {{
+        type nat hook postrouting priority 100;
+        ip saddr {peeraddr} oif != "{ifname}" masquerade
+    }}
+}}
+"""
+
+NFT_PORT_FORWARD_TEMPLATE = """
+table ip aronet {{
+	chain prerouting {{
+		type nat hook prerouting priority 0; policy accept;
+        {commands}
+	}}
+}}
 """
 
 
@@ -158,7 +187,7 @@ class Config:
 
     @property
     def custom_config(self):
-        """The custom_config property."""
+        """configuration given by user from command line"""
         return self.__custom_config
 
     @custom_config.setter
@@ -168,6 +197,7 @@ class Config:
 
     @property
     def custom_registry(self):
+        """registry given by user from command line"""
         return self.__custom_registry
 
     @custom_registry.setter
@@ -188,6 +218,7 @@ class Config:
 
     @property
     def route_networks(self):
+        """networks should be routed to current node"""
         return self.__route_networks
 
     @route_networks.setter
@@ -212,3 +243,27 @@ class Config:
             return self.custom_config["ifname"]
 
         return "aronet"
+
+    @property
+    def tunnel_if_prefix(self) -> str:
+        return self.ifname
+
+    @property
+    def backend_socket_path(self) -> str:
+        return os.path.join(self.runtime_dir, "aronet.ctl")
+
+    @property
+    def use_netns(self) -> bool:
+        return bool(self.custom_config.get("daemon").get("use_netns"))
+
+    @property
+    def netns_name(self):
+        return "aronet"
+
+    @property
+    def netns_peername(self):
+        return self.ifname + "-peer"
+
+    @property
+    def netns_peeraddr(self):
+        return "192.168.168.168"
