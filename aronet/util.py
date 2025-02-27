@@ -94,5 +94,5 @@ def dump_message(data: dict) -> bytes:
     return (json.dumps(data) + "\n").encode()
 
 
-def setup_interfaces(use_netns: bool):
-    pass
+def srv6_dx4_from_net(net: ipaddress.ip_network, suffix: int):
+    return ipaddress.ip_interface(f"{net.network_address + suffix}/128")

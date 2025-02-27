@@ -6,13 +6,17 @@ SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)
 
 setup() {
     echo "trying to create docker network..."
-    docker network create --subnet=172.32.0.0/16 aronet
+    docker network create --subnet=172.32.0.0/16 --ipv6 aronet
     echo "done!"
 
     echo "trying to run aronet in moon node..."
     docker run \
         --cap-add NET_ADMIN --cap-add SYS_MODULE --cap-add SYS_ADMIN \
         --security-opt apparmor=unconfined --security-opt seccomp=unconfined \
+        --privileged \
+        --sysctl net.netfilter.nf_hooks_lwtunnel=1 \
+        --sysctl net.ipv6.conf.all.forwarding=1 \
+        --sysctl net.ipv4.ip_forward=1 \
         -d \
         -it \
         --name moon \
@@ -27,6 +31,10 @@ setup() {
     docker run \
         --cap-add NET_ADMIN --cap-add SYS_MODULE --cap-add SYS_ADMIN \
         --security-opt apparmor=unconfined --security-opt seccomp=unconfined \
+        --privileged \
+        --sysctl net.netfilter.nf_hooks_lwtunnel=1 \
+        --sysctl net.ipv6.conf.all.forwarding=1 \
+        --sysctl net.ipv4.ip_forward=1 \
         -d \
         -it \
         --name sun \

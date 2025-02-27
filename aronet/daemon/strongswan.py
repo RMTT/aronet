@@ -14,7 +14,7 @@ from pyroute2 import IPRoute
 from pyroute2.netlink.rtnl.ifinfmsg import IFF_MULTICAST, IFF_UP
 from pyroute2.netns import popns, pushns
 
-from aronet.config import NFT_PORT_FORWARD_TEMPLATE, Config
+from aronet.config import NFT_PORT_FORWARD_TEMPLATE, SRV6_ACTION_END_DX4, Config
 from aronet.daemon import ACTION_LOAD_CONNS, Daemon, InternalMessage
 from aronet.netlink import Netlink
 from aronet.strongswan.client import Client
@@ -23,6 +23,7 @@ from aronet.util import (
     derive_public_key,
     read_stream,
     same_address_family,
+    srv6_dx4_from_net,
 )
 
 
@@ -267,21 +268,53 @@ class Strongswan(Daemon):
     ):
         nl = Netlink()
         self._logger.info(f"trying to add routes to {self._config.ifname}...")
-        if_id = nl.ndb.interfaces[self._config.ifname]["index"]
-        for net in networks:
-            for address in self._config.custom_config["daemon"]["addresses"]:
-                ip = ipaddress.ip_address(address)
-
-                if ip.version != net.version:
-                    continue
-
+        for net, prefixs in networks.items():
+            for prefix in prefixs:
+                extra_args = {}
                 self._logger.debug(
-                    f"adding route to {net.with_prefixlen} from {self._config.ifname} src {ip}"
+                    f"adding route to {prefix.with_prefixlen} from {self._config.ifname}"
+                )
+                if prefix.version == 4:
+                    extra_args["encap"] = {
+                        "type": "seg6",
+                        "mode": "encap",
+                        "segs": srv6_dx4_from_net(net, SRV6_ACTION_END_DX4).ip.exploded,
+                    }
+                else:
+                    extra_args["gateway"] = self._config.netns_peeraddr.ip.exploded
+
+                nl.create_route(
+                    dst=prefix.with_prefixlen,
+                    oif=self._config.ifname,
+                    **extra_args,
                 )
 
-                with nl.ndb.routes.create(dst=net.with_prefixlen, oif=if_id) as r:
-                    if self._config.use_netns:
-                        r.set(gateway=self._config.netns_peeraddr)
+    def __setup_nftables(self, local_ports: set):
+        # configure port-forwarding if we use netns mode
+        if self._config.use_netns:
+            nft_temp_v4 = 'ip saddr != {peeraddr} iif != "{ifname}" udp dport {port} dnat {peeraddr}:{port}\n'
+            nft_temp_v6 = 'ip6 saddr != {peeraddr} iif != "{ifname}" udp dport {port} dnat {peeraddr}:{port}\n'
+            nft_commands = ""
+            for port in local_ports:
+                nft_commands += nft_temp_v4.format(
+                    port=port,
+                    peeraddr=self._config.netns_peeraddr_v4.ip.exploded,
+                    ifname=self._config.ifname,
+                )
+                nft_commands += nft_temp_v6.format(
+                    port=port,
+                    peeraddr=self._config.netns_peeraddr.ip.exploded,
+                    ifname=self._config.ifname,
+                )
+            self._logger.debug(f"will add following nftable rules: {nft_commands}")
+            nft_tmpfile = tempfile.NamedTemporaryFile()
+            nft_tmpfile.write(
+                NFT_PORT_FORWARD_TEMPLATE.format(commands=nft_commands).encode()
+            )
+            nft_tmpfile.flush()
+            subprocess.run(["nft", "-f", nft_tmpfile.name], check=True)
+            self._logger.debug("nftables added")
+            nft_tmpfile.close()
 
     def __load_conn(self, _config: dict, registry: dict):
         # config contains private key data, so we shouldn't keep it in memory for long time
@@ -297,7 +330,7 @@ class Strongswan(Daemon):
         name_set = set()
         connection = {}
         local_ports = set()
-        networks = []
+        networks = {}
 
         for local in config["endpoints"]:
             local_id = build_id(config["organization"], config["common_name"], local)
@@ -310,8 +343,10 @@ class Strongswan(Daemon):
                     if node_name == local_name:
                         continue
 
+                    net = ipaddress.ip_network(node["remarks"]["network"], False)
+                    networks[net] = [net]
                     for prefix in node["remarks"]["prefixs"]:
-                        networks.append(ipaddress.ip_network(prefix, False))
+                        networks[net].append(ipaddress.ip_network(prefix, False))
 
                     for remote in node["endpoints"]:
                         if not same_address_family(local, remote):
@@ -367,24 +402,7 @@ class Strongswan(Daemon):
                         name_set.add(connection_name)
 
         self.__vici.load_conn(connection)
-
-        # configure port-forwarding if we use netns mode
-        nft_temp = 'ip saddr != {peeraddr} iif != "{ifname}" udp dport {port} dnat {peeraddr}:{port}\n'
-        nft_commands = ""
-        if self._config.use_netns:
-            for port in local_ports:
-                nft_commands += nft_temp.format(
-                    port=port,
-                    peeraddr=self._config.netns_peeraddr,
-                    ifname=self._config.ifname,
-                )
-        nft_tmpfile = tempfile.NamedTemporaryFile()
-        nft_tmpfile.write(
-            NFT_PORT_FORWARD_TEMPLATE.format(commands=nft_commands).encode()
-        )
-        nft_tmpfile.flush()
-        subprocess.run(["nft", "-f", nft_tmpfile.name], check=True)
-        nft_tmpfile.close()
+        self.__setup_nftables(local_ports)
 
         delete_set = set()
         for conn in self.__vici.list_conns():

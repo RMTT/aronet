@@ -9,8 +9,6 @@ from stat import S_IXUSR
 import subprocess
 from typing import Callable
 
-from pyroute2.ndb.source import NetNS
-
 from aronet.cmd.base import BaseCommand
 from aronet.config import NFT_INIT_TEMPLATE, UPDOWN_TEMPLATE, Config
 from aronet.daemon.backend import BackendDaemon
@@ -86,9 +84,6 @@ class DaemonCommand(BaseCommand):
         del self.__bird
         del self.__backend
 
-        if self.config.use_netns:
-            self.__ns.close()
-
     def run(self, args: argparse.Namespace) -> bool:
         match args.action:
             case "run":
@@ -142,7 +137,8 @@ class DaemonCommand(BaseCommand):
             )
         os.chmod(self.config.updown_path, S_IXUSR)
 
-        route_networks = []
+        # cidrs should be routed to this node
+        route_networks = [self.config.custom_network]
         for prefix in self.config.custom_config["daemon"]["prefixs"]:
             net = ipaddress.ip_network(prefix, False)
             route_networks.append(net)
@@ -150,102 +146,107 @@ class DaemonCommand(BaseCommand):
 
         # TODO: clean up interfaces which existed before
         nl = Netlink()
-        target = "localhost"
-        old_if = nl.ndb.interfaces.get(self.config.ifname)
-        if old_if:
-            with old_if:
-                old_if.remove()
+        nl.remove_interface(self.config.ifname)
 
         if self.config.use_netns:
-            self.__ns = NetNS(self.config.netns_name)
-            nl.ndb.sources.add(netns=self.config.netns_name)
+            netns = self.config.netns_name
+            nl.add_netns(netns)
 
-            # create veth pair for netns
-            with nl.ndb.interfaces.create(
-                target=target,
+            # create the main interfaces(veth pair in case) for connectivity
+            nl.create_interface(
                 ifname=self.config.ifname,
+                addresses=[self.config.main_if_addr.with_prefixlen],
+                kind="veth",
                 peer={
                     "ifname": self.config.ifname,
                     "net_ns_fd": self.config.netns_name,
                 },
-                kind="veth",
-            ) as i:
-                i.set(state="up")
-                for address in self.config.custom_config["daemon"]["addresses"]:
-                    i.add_ip({"address": address, "mask": 32})
+            )
+            nl.interface_wait_and_set(
+                netns=netns,
+                ifname=self.config.ifname,
+                addresses=[
+                    self.config.netns_peeraddr.with_prefixlen,
+                    self.config.netns_peeraddr_v4.with_prefixlen,
+                ],
+            )
 
-            if_id = nl.ndb.interfaces.get(
-                {"target": target, "ifname": self.config.ifname}
-            )["index"]
-            # need use 'scope: link' to let os don't find the nexthop ip
-            with nl.ndb.routes.create(
-                dst=f"{self.config.netns_peeraddr}/32", target=target
-            ) as r:
-                r.set(oif=if_id)
-                r.set(scope="link")
+            # create routes in root netns to make aronet netns is accessable
+            # use 'scope: link' for v4 to find nexthop
+            nl.create_route(
+                dst=self.config.netns_peeraddr.with_prefixlen, oif=self.config.ifname
+            )
+            nl.create_route(
+                dst=self.config.netns_peeraddr_v4.with_prefixlen,
+                oif=self.config.ifname,
+                scope="link",
+            )
+            for prefix in self.config.custom_config["daemon"]["prefixs"]:
+                ip = ipaddress.ip_network(prefix, strict=False)
+                if ip.version == 6:
+                    nl.create_route(
+                        dst=prefix,
+                        oif=self.config.ifname,
+                        gateway=self.config.netns_peeraddr.ip.exploded,
+                    )
+                else:
+                    pass
 
-            target = self.config.netns_name
-            with nl.ndb.interfaces.wait(
-                target=target, ifname=self.config.ifname
-            ) as peer:
-                peer.add_ip({"address": self.config.netns_peeraddr, "mask": 32})
-                peer.set(state="up")
-            if_id = nl.ndb.interfaces.get(
-                {"target": target, "ifname": self.config.ifname}
-            )["index"]
-            # route host ips from netns
-            add_v4_gateway = False
-            add_v6_gateway = False
-            for address in self.config.custom_config["daemon"]["addresses"]:
-                ip = ipaddress.ip_address(address)
-                with nl.ndb.routes.create(
-                    dst=f"{ip}/32", target=target, oif=if_id
-                ) as r:
-                    r.set(scope="link")
-                    r.set(type="unicast")
+            # add routes in aronet netns to make aronet netns can visit outside world
+            nl.create_route(
+                dst=self.config.main_if_addr.ip.exploded,
+                oif=self.config.ifname,
+                netns=netns,
+            )
+            nl.create_route(
+                dst="::/0",
+                netns=netns,
+                gateway=self.config.main_if_addr.ip.exploded,
+            )
 
-                if not add_v4_gateway and ip.version == 4:
-                    with nl.ndb.routes.create(
-                        dst="0.0.0.0/0", target=target, oif=if_id
-                    ) as r:
-                        r.set(gateway=str(ip))
-                    add_v4_gateway = True
-                if not add_v6_gateway and ip.version == 6:
-                    with nl.ndb.routes.create(
-                        dst="::/0", target=target, oif=if_id
-                    ) as r:
-                        r.set(gateway=str(ip))
-
-                    add_v6_gateway = True
+            # add routes to route ipv4 via srv6
+            nl.create_route(
+                dst="0.0.0.0/0",
+                oif=self.config.ifname,
+                netns=netns,
+                encap={
+                    "type": "seg6",
+                    "mode": "encap",
+                    "segs": self.config.aronet_srv6_sid_dx4.ip.exploded,
+                },
+            )
 
             # create nftable rules to make netns visit internet
             nft_rule_file = tempfile.NamedTemporaryFile()
             nft_rule_file.write(
                 NFT_INIT_TEMPLATE.format(
-                    ifname=self.config.ifname, peeraddr=self.config.netns_peeraddr
+                    ifname=self.config.ifname,
+                    peeraddr_v6=self.config.netns_peeraddr.ip.exploded,
+                    peeraddr_v4=self.config.netns_peeraddr_v4.ip.exploded,
                 ).encode()
             )
             nft_rule_file.flush()
-            result = subprocess.run(["nft", "-f", nft_rule_file.name])
+            subprocess.run(["nft", "-f", nft_rule_file.name], check=True)
             nft_rule_file.close()
-            if result.returncode != 0:
-                raise Exception("creating nftable rules failed")
         else:
-            # create vrf device
-            with nl.ndb.interfaces.create(
-                kind="vrf", ifname=self.config.ifname, target=target
-            ) as i:
-                i.set(vrf_table=self.config.route_table)
-                i.set(state="up")
-                for address in self.config.custom_config["daemon"]["addresses"]:
-                    i.add_ip({"address": address, "mask": 32})
+            # create main vrf device
+            nl.create_interface(
+                kind="vrf",
+                ifname=self.config.ifname,
+                vrf_table=self.config.route_table,
+                addresses=[self.config.main_if_addr.with_prefixlen],
+            )
 
-            with nl.ndb.routes.create(
-                table=self.config.route_table,
-                dst="0.0.0.0/0",
-                priority=4278198272,
-                target=target,
-            ) as r:
-                r.set(type="unreachable")
+        # add srv6 routes in root netns
+        nl.create_route(
+            dst=self.config.aronet_srv6_sid_dx4.with_prefixlen,
+            oif=self.config.ifname,
+            encap={"type": "seg6local", "action": "End.DX4", "nh4": "0.0.0.0"},
+        )
+        nl.create_route(
+            dst=self.config.aronet_srv6_sid_end.with_prefixlen,
+            oif=self.config.ifname,
+            encap={"type": "seg6local", "action": "End"},
+        )
 
         self.__clean = True

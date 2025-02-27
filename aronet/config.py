@@ -1,3 +1,4 @@
+import ipaddress
 import os
 
 from jsonschema import validate
@@ -8,6 +9,11 @@ ENV_BIRD_PATH = "BIRD_PATH"
 ENV_BIRDC_PATH = "BIRDC_PATH"
 ENV_UPDOWN_PATH = "UPDOWN_PATH"
 ENV_RUNTIME_DIR = "RUNTIME_DIR"
+
+ARONET_NETWORK_SUFFIX = 0xFFFF000000000000
+NETNS_PEER_ADDR = 0xFFFF000000000001
+SRV6_ACTION_END = 0xFFFF00000000000A
+SRV6_ACTION_END_DX4 = 0xFFFF00000000000B
 
 _CONFIG_SCHEMA = {
     "type": "object",
@@ -22,15 +28,12 @@ _CONFIG_SCHEMA = {
                     "type": "array",
                     "items": {"type": "string"},
                 },
-                "addresses": {
-                    "type": "array",
-                    "items": {"type": "string"},
-                },
+                "network": {"type": "string"},
                 "ifname": {"type": "string"},
                 "route_table": {"type": "integer"},
                 "use_netns": {"type": "boolean"},
             },
-            "required": ["prefixs", "addresses"],
+            "required": ["prefixs", "network"],
         },
         "endpoints": {
             "type": "array",
@@ -81,9 +84,10 @@ _REGISTRY_SCHEMA = {
                                 "prefixs": {
                                     "type": "array",
                                     "items": {"type": "string"},
-                                }
+                                },
+                                "network": {"type": "string"},
                             },
-                            "required": ["prefixs"],
+                            "required": ["prefixs", "network"],
                         },
                     },
                     "required": ["common_name", "endpoints"],
@@ -112,20 +116,17 @@ esac
 """
 
 NFT_INIT_TEMPLATE = """
-table ip aronet {{
-	chain prerouting {{
-		type nat hook prerouting priority 0; policy accept;
-	}}
-
+table inet aronet {{
     chain postrouting {{
         type nat hook postrouting priority 100;
-        ip saddr {peeraddr} oif != "{ifname}" masquerade
+        ip6 saddr {peeraddr_v6} oif != "{ifname}" masquerade
+        ip saddr {peeraddr_v4} oif != "{ifname}" masquerade
     }}
 }}
 """
 
 NFT_PORT_FORWARD_TEMPLATE = """
-table ip aronet {{
+table inet aronet {{
 	chain prerouting {{
 		type nat hook prerouting priority 0; policy accept;
         {commands}
@@ -193,7 +194,33 @@ class Config:
     @custom_config.setter
     def custom_config(self, value):
         validate(value, _CONFIG_SCHEMA)
+        self.__custom_network = ipaddress.ip_network(
+            value["daemon"]["network"], strict=False
+        )
+        if self.__custom_network.version != 6 or self.__custom_network.prefixlen > 64:
+            raise Exception(
+                "'network' in 'daemon' config must be a ipv6 network with larger than or equal to /64"
+            )
+
+        self.__aronet_network = ipaddress.ip_network(
+            f"{self.__custom_network.network_address + ARONET_NETWORK_SUFFIX}/80"
+        )
+
         self.__custom_config = value
+
+    @property
+    def main_if_addr(self):
+        return ipaddress.ip_interface(
+            f"{self.__custom_network.network_address + 1}/{self.__custom_network.prefixlen}"
+        )
+
+    @property
+    def custom_network(self):
+        return self.__custom_network
+
+    @property
+    def aronet_network(self):
+        return self.__aronet_network.with_prefixlen
 
     @property
     def custom_registry(self):
@@ -266,4 +293,22 @@ class Config:
 
     @property
     def netns_peeraddr(self):
-        return "192.168.168.168"
+        return ipaddress.ip_interface(
+            f"{self.__custom_network.network_address + NETNS_PEER_ADDR}/128"
+        )
+
+    @property
+    def netns_peeraddr_v4(self):
+        return ipaddress.ip_interface("192.168.168.168/32")
+
+    @property
+    def aronet_srv6_sid_dx4(self):
+        return ipaddress.ip_interface(
+            f"{self.__custom_network.network_address + SRV6_ACTION_END_DX4}/128"
+        )
+
+    @property
+    def aronet_srv6_sid_end(self):
+        return ipaddress.ip_interface(
+            f"{self.__custom_network.network_address + SRV6_ACTION_END}/128"
+        )
