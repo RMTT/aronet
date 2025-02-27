@@ -5,7 +5,7 @@ Auto routed and full mesh overlay network with flexibility based on ipsec, srv6 
 ### Requirements
 
 Linux:
-+ kerner >= 4.14
++ kernel >= 4.14
 + enable vrf module
 + firewall port: 6696(babel), 12025(default for node connectivity)
 + enable following sysctl parameters:
