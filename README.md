@@ -147,7 +147,7 @@ aronet load -c /path/to/config.sjon -r /path/to/registry.json
 
 ### VRF mode
 
-![topology of vrf mode](`/assets/images/topology-vrf.png`)
+![topology of vrf mode](/assets/images/topology-vrf.png)
 
 
 
@@ -159,7 +159,7 @@ aronet load -c /path/to/config.sjon -r /path/to/registry.json
 
 ### network namespace mode
 
-![topology of vrf mode](`/assets/images/topology-netns.png`)
+![topology of vrf mode](/assets/images/topology-netns.png)
 
 
 </details>
