@@ -139,7 +139,7 @@ aronet load -r /path/to/registry.json
 ```
 
 
-## Explantation
+## Explanation
 
 <details>
 
