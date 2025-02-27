@@ -61,7 +61,7 @@ To run aronet, you need two files basically:
 
 After aronet started, it will create a vrf device(or a network namespace if use netns mode) called `aronet` with address in `daemon.network`, then other nodes will route the traffic of `daemon.prefixs` to your node. The `endpoints` tell other nodes how to connect to your node.
 
-Note that `aronet` will reserve the `{daemon.network}:ffff::/80` range for internal usage. The majority of this range will be used for srv6 actions.
+Note that `aronet` will reserve the `{daemon.network}:ffff::/80` range for internal usage. The majority of this range will be used for srv6 actions. And the ipv4 traffic will be routed via srv6 light weight tunnel(End.DX4).
 
 <details>
 
