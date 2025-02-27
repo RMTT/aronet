@@ -133,9 +133,9 @@ To launch aronet, firstly launch the `daemon`:
 ```shell
 aronet daemon run -c /path/to/config.json
 ```
-And then load the configurations:
+And then load the registry:
 ```shell
-aronet load -c /path/to/config.sjon -r /path/to/registry.json
+aronet load -r /path/to/registry.json
 ```
 
 
