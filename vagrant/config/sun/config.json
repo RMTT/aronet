@@ -6,12 +6,12 @@
     "prefixs": [
       "192.168.129.1/24"
     ],
-    "use_netns": true,
+    "use_netns": false,
     "network": "fd67::1/64"
   },
   "endpoints": [
     {
-      "address": "172.32.0.3",
+      "address": "192.168.121.238",
       "port": 12025
     }
   ]

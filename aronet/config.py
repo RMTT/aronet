@@ -11,9 +11,12 @@ ENV_UPDOWN_PATH = "UPDOWN_PATH"
 ENV_RUNTIME_DIR = "RUNTIME_DIR"
 
 ARONET_NETWORK_SUFFIX = 0xFFFF000000000000
-NETNS_PEER_ADDR = 0xFFFF000000000001
-SRV6_ACTION_END = 0xFFFF00000000000A
-SRV6_ACTION_END_DX4 = 0xFFFF00000000000B
+
+NETNS_PEER_ADDR = 0x2
+MAIN_INTERFACE_ADDR = 0x1
+
+SRV6_ACTION_END = 0xA
+SRV6_ACTION_END_DX4 = 0xB
 
 _CONFIG_SCHEMA = {
     "type": "object",
@@ -99,22 +102,6 @@ _REGISTRY_SCHEMA = {
 }
 
 
-UPDOWN_TEMPLATE = """
-#!/usr/bin/env bash
-
-LINK={prefix}-$(printf '%08x\n' "$PLUTO_IF_ID_OUT")
-case "$PLUTO_VERB" in
-up-client)
-    ip link add "$LINK" type xfrm if_id "$PLUTO_IF_ID_OUT"
-    ip link set "$LINK" multicast on mtu 1400 up
-    {vrf_statement}
-    ;;
-down-client)
-    ip link del "$LINK"
-    ;;
-esac
-"""
-
 NFT_INIT_TEMPLATE = """
 table inet aronet {{
     chain postrouting {{
@@ -176,7 +163,13 @@ class Config:
 
     @property
     def updown_path(self) -> str:
-        return os.getenv(ENV_UPDOWN_PATH, os.path.join(self.runtime_dir, "updown"))
+        return os.getenv(
+            ENV_UPDOWN_PATH, os.path.join(self.__libexec_path, "updown.sh")
+        )
+
+    @property
+    def updown_env_path(self) -> str:
+        return os.getenv(ENV_UPDOWN_PATH, os.path.join(self.runtime_dir, "updown_env"))
 
     @property
     def runtime_dir(self) -> str:
@@ -211,7 +204,7 @@ class Config:
     @property
     def main_if_addr(self):
         return ipaddress.ip_interface(
-            f"{self.__custom_network.network_address + 1}/{self.__custom_network.prefixlen}"
+            f"{self.__aronet_network.network_address + MAIN_INTERFACE_ADDR}/128"
         )
 
     @property
@@ -233,7 +226,7 @@ class Config:
         self.__custom_registry = value
 
     @property
-    def route_table(self) -> int:
+    def vrf_route_table(self) -> int:
         if (
             self.custom_config
             and "daemon" in self.custom_config
@@ -294,7 +287,7 @@ class Config:
     @property
     def netns_peeraddr(self):
         return ipaddress.ip_interface(
-            f"{self.__custom_network.network_address + NETNS_PEER_ADDR}/128"
+            f"{self.__aronet_network.network_address + NETNS_PEER_ADDR}/128"
         )
 
     @property
@@ -304,11 +297,15 @@ class Config:
     @property
     def aronet_srv6_sid_dx4(self):
         return ipaddress.ip_interface(
-            f"{self.__custom_network.network_address + SRV6_ACTION_END_DX4}/128"
+            f"{self.__aronet_network.network_address + SRV6_ACTION_END_DX4}/128"
         )
 
     @property
     def aronet_srv6_sid_end(self):
         return ipaddress.ip_interface(
-            f"{self.__custom_network.network_address + SRV6_ACTION_END}/128"
+            f"{self.__aronet_network.network_address + SRV6_ACTION_END}/128"
         )
+
+    @property
+    def default_route_table(self) -> int:
+        return 254

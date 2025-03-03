@@ -11,10 +11,10 @@ import tempfile
 from typing import OrderedDict
 
 from pyroute2 import IPRoute
+from pyroute2.netlink import AF_INET6
 from pyroute2.netlink.rtnl.ifinfmsg import IFF_MULTICAST, IFF_UP
-from pyroute2.netns import popns, pushns
 
-from aronet.config import NFT_PORT_FORWARD_TEMPLATE, SRV6_ACTION_END_DX4, Config
+from aronet.config import NFT_PORT_FORWARD_TEMPLATE, Config
 from aronet.daemon import ACTION_LOAD_CONNS, Daemon, InternalMessage
 from aronet.netlink import Netlink
 from aronet.strongswan.client import Client
@@ -23,7 +23,6 @@ from aronet.util import (
     derive_public_key,
     read_stream,
     same_address_family,
-    srv6_dx4_from_net,
 )
 
 
@@ -211,16 +210,12 @@ class Strongswan(Daemon):
 
         self._logger.info("running charon...")
 
-        if self._config.use_netns:
-            pushns(self._config.netns_name)
         self.process = await asyncio.create_subprocess_exec(
             self.__charon_path,
             env=env,
             stderr=asyncio.subprocess.PIPE,
             stdout=asyncio.subprocess.PIPE,
         )
-        if self._config.use_netns:
-            popns()
 
         self._logger.debug(f"charon is running, pid {self.process.pid}")
 
@@ -264,7 +259,10 @@ class Strongswan(Daemon):
         return "strongswan is not running"
 
     def __setup_route(
-        self, networks: list[ipaddress.IPv4Network | ipaddress.IPv6Network]
+        self,
+        networks: dict[
+            ipaddress.IPv6Network : list[ipaddress.IPv4Network | ipaddress.IPv6Network]
+        ],
     ):
         nl = Netlink()
         self._logger.info(f"trying to add routes to {self._config.ifname}...")
@@ -274,14 +272,21 @@ class Strongswan(Daemon):
                 self._logger.debug(
                     f"adding route to {prefix.with_prefixlen} from {self._config.ifname}"
                 )
-                if prefix.version == 4:
-                    extra_args["encap"] = {
-                        "type": "seg6",
-                        "mode": "encap",
-                        "segs": srv6_dx4_from_net(net, SRV6_ACTION_END_DX4).ip.exploded,
-                    }
-                else:
-                    extra_args["gateway"] = self._config.netns_peeraddr.ip.exploded
+
+                if self._config.use_netns:
+                    if prefix.version == 6:
+                        extra_args["gateway"] = self._config.netns_peeraddr.ip.exploded
+                    else:
+                        # FIXME: use **extra_args will fail to add this route, why?
+                        nl.create_route(
+                            dst=prefix.with_prefixlen,
+                            oif=self._config.ifname,
+                            via={
+                                "family": AF_INET6,
+                                "addr": self._config.netns_peeraddr.ip.exploded,
+                            },
+                        )
+                        continue
 
                 nl.create_route(
                     dst=prefix.with_prefixlen,
@@ -329,7 +334,6 @@ class Strongswan(Daemon):
 
         name_set = set()
         connection = {}
-        local_ports = set()
         networks = {}
 
         for local in config["endpoints"]:
@@ -364,6 +368,7 @@ class Strongswan(Daemon):
 
                         connection[connection_name] = {
                             "version": 2,
+                            "local_addrs": [local["address"]],
                             "remote_addrs": [remote["address"]],
                             "local_port": local["port"],
                             "remote_port": remote["port"],
@@ -393,16 +398,9 @@ class Strongswan(Daemon):
                                 }
                             },
                         }
-                        if not self._config.use_netns:
-                            connection[connection_name]["local_addrs"] = [
-                                local["address"]
-                            ]
-
-                        local_ports.add(local["port"])
                         name_set.add(connection_name)
 
         self.__vici.load_conn(connection)
-        self.__setup_nftables(local_ports)
 
         delete_set = set()
         for conn in self.__vici.list_conns():

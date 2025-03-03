@@ -104,7 +104,7 @@ class Bird(Daemon):
         if self._config.route_networks:
             for net in self._config.route_networks:
                 if net.version == 4:
-                    # ipv4_networks += f"\nroute {net.with_prefixlen} unreachable;"
+                    ipv4_networks += f"\nroute {net.with_prefixlen} unreachable;"
                     pass
                 else:
                     ipv6_networks += (
@@ -113,7 +113,7 @@ class Bird(Daemon):
 
         with open(self._config.bird_conf_path, "w") as f:
             vrf_statement = f'vrf "{self._config.ifname}"'
-            route_table = self._config.route_table
+            route_table = self._config.vrf_route_table
             if self._config.use_netns:
                 vrf_statement = ""
                 route_table = 254

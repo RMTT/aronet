@@ -1,0 +1,44 @@
+[
+  {
+    "public_key": "-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEASCV1oi1Fu7jK31pSvMq1ofahu9BRI9O7zsZZ2bpdmJo=\n-----END PUBLIC KEY-----",
+    "organization": "test1",
+    "nodes": [
+      {
+        "common_name": "moon",
+        "endpoints": [
+          {
+            "address": "192.168.121.140",
+            "port": 12025
+          }
+        ],
+        "remarks": {
+          "network": "fd66::1/64",
+          "prefixs": [
+            "192.168.128.1/24"
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "public_key": "-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEAgsODQENIjHqks45F0U3tcJbg5rp1bQvb93z3aP75y/c=\n-----END PUBLIC KEY-----",
+    "organization": "test2",
+    "nodes": [
+      {
+        "common_name": "sun",
+        "endpoints": [
+          {
+            "address": "192.168.121.238",
+            "port": 12025
+          }
+        ],
+        "remarks": {
+          "network": "fd67::1/64",
+          "prefixs": [
+            "192.168.129.1/24"
+          ]
+        }
+      }
+    ]
+  }
+]

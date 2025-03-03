@@ -17,6 +17,8 @@ setup() {
         --sysctl net.netfilter.nf_hooks_lwtunnel=1 \
         --sysctl net.ipv6.conf.all.forwarding=1 \
         --sysctl net.ipv4.ip_forward=1 \
+        --sysctl net.ipv4.tcp_l3mdev_accept=1 \
+        --sysctl net.ipv4.udp_l3mdev_accept=1 \
         -d \
         -it \
         --name moon \
@@ -35,6 +37,8 @@ setup() {
         --sysctl net.netfilter.nf_hooks_lwtunnel=1 \
         --sysctl net.ipv6.conf.all.forwarding=1 \
         --sysctl net.ipv4.ip_forward=1 \
+        --sysctl net.ipv4.tcp_l3mdev_accept=1 \
+        --sysctl net.ipv4.udp_l3mdev_accept=1 \
         -d \
         -it \
         --name sun \
@@ -73,6 +77,9 @@ load_conn() {
 }
 
 test_connectivity() {
+    docker exec moon ip addr add 192.168.128.1/32 dev aronet
+    docker exec sun ip addr add 192.168.129.1/32 dev aronet
+
     docker exec moon ping -c 5 192.168.129.1
     docker exec sun ping -c 5 192.168.128.1
 

@@ -5,12 +5,13 @@ import json
 import os
 import tempfile
 from logging import Logger
-from stat import S_IXUSR
 import subprocess
 from typing import Callable
 
+from pyroute2.netlink import AF_INET6
+
 from aronet.cmd.base import BaseCommand
-from aronet.config import NFT_INIT_TEMPLATE, UPDOWN_TEMPLATE, Config
+from aronet.config import NFT_INIT_TEMPLATE, Config
 from aronet.daemon.backend import BackendDaemon
 from aronet.daemon.bird import Bird
 from aronet.daemon.strongswan import Strongswan
@@ -126,16 +127,16 @@ class DaemonCommand(BaseCommand):
         with open(self.__pidfile_path, "w") as f:
             f.write("{}".format(os.getpid()))
 
-        with open(self.config.updown_path, "w") as f:
-            f.write(
-                UPDOWN_TEMPLATE.format(
-                    vrf_statement=""
-                    if self.config.use_netns
-                    else f'ip link set "$LINK" master {self.config.ifname}',
-                    prefix=self.config.tunnel_if_prefix,
-                )
-            )
-        os.chmod(self.config.updown_path, S_IXUSR)
+        with open(self.config.updown_env_path, "w") as f:
+            envs = [
+                f"ARONET_IF_PREFIX={self.config.tunnel_if_prefix}\n",
+                f"ARONET_IF_NAME={self.config.ifname}\n",
+                f"ARONET_ENABLE_NETNS={'true' if self.config.use_netns else 'fasle'}\n",
+                f"ARONET_ENABLE_VRF={'false' if self.config.use_netns else 'true'}\n",
+                "ARONET_NETNS_NAME='aronet'\n",
+            ]
+
+            f.writelines(envs)
 
         # cidrs should be routed to this node
         route_networks = [self.config.custom_network]
@@ -171,28 +172,12 @@ class DaemonCommand(BaseCommand):
                 ],
             )
 
-            # create routes in root netns to make aronet netns is accessable
-            # use 'scope: link' for v4 to find nexthop
+            # create routes in root netns to make aronet netns accessable
             nl.create_route(
                 dst=self.config.netns_peeraddr.with_prefixlen, oif=self.config.ifname
             )
-            nl.create_route(
-                dst=self.config.netns_peeraddr_v4.with_prefixlen,
-                oif=self.config.ifname,
-                scope="link",
-            )
-            for prefix in self.config.custom_config["daemon"]["prefixs"]:
-                ip = ipaddress.ip_network(prefix, strict=False)
-                if ip.version == 6:
-                    nl.create_route(
-                        dst=prefix,
-                        oif=self.config.ifname,
-                        gateway=self.config.netns_peeraddr.ip.exploded,
-                    )
-                else:
-                    pass
 
-            # add routes in aronet netns to make aronet netns can visit outside world
+            # make netns accessing outside
             nl.create_route(
                 dst=self.config.main_if_addr.ip.exploded,
                 oif=self.config.ifname,
@@ -204,49 +189,42 @@ class DaemonCommand(BaseCommand):
                 gateway=self.config.main_if_addr.ip.exploded,
             )
 
-            # add routes to route ipv4 via srv6
+            # add routes to route ipv4 via ipv6
             nl.create_route(
                 dst="0.0.0.0/0",
                 oif=self.config.ifname,
                 netns=netns,
-                encap={
-                    "type": "seg6",
-                    "mode": "encap",
-                    "segs": self.config.aronet_srv6_sid_dx4.ip.exploded,
-                },
+                via={"family": AF_INET6, "addr": self.config.main_if_addr.ip.exploded},
             )
-
-            # create nftable rules to make netns visit internet
-            nft_rule_file = tempfile.NamedTemporaryFile()
-            nft_rule_file.write(
-                NFT_INIT_TEMPLATE.format(
-                    ifname=self.config.ifname,
-                    peeraddr_v6=self.config.netns_peeraddr.ip.exploded,
-                    peeraddr_v4=self.config.netns_peeraddr_v4.ip.exploded,
-                ).encode()
-            )
-            nft_rule_file.flush()
-            subprocess.run(["nft", "-f", nft_rule_file.name], check=True)
-            nft_rule_file.close()
         else:
             # create main vrf device
             nl.create_interface(
                 kind="vrf",
                 ifname=self.config.ifname,
-                vrf_table=self.config.route_table,
+                vrf_table=self.config.vrf_route_table,
                 addresses=[self.config.main_if_addr.with_prefixlen],
             )
 
-        # add srv6 routes in root netns
+        self.__setup_srv6(nl)
+        self.__clean = True
+
+    def __setup_srv6(self, nl: Netlink):
+        extra_args = {}
+        if self.config.use_netns:
+            extra_args["netns"] = self.config.netns_name
+        else:
+            extra_args["table"] = self.config.vrf_route_table
         nl.create_route(
             dst=self.config.aronet_srv6_sid_dx4.with_prefixlen,
             oif=self.config.ifname,
             encap={"type": "seg6local", "action": "End.DX4", "nh4": "0.0.0.0"},
+            **extra_args,
         )
         nl.create_route(
             dst=self.config.aronet_srv6_sid_end.with_prefixlen,
             oif=self.config.ifname,
             encap={"type": "seg6local", "action": "End"},
+            **extra_args,
         )
 
-        self.__clean = True
+        pass

@@ -10,8 +10,8 @@ Linux:
 + firewall port: 6696(babel), 12025(default for node connectivity)
 + enable following sysctl parameters:
 	+ `net.netfilter.nf_hooks_lwtunnel`: let packets from srv6 tunnel be processed by netfilter
-	+ `sysctl net.ipv6.conf.all.forwarding`
-    + `sysctl net.ipv4.ip_forward`
+	+ `net.ipv6.conf.all.forwarding`
+    + `net.ipv4.ip_forward`
     + `net.core.devconf_inherit_init_net`: optional for network namespace mode, let netns inherit kernel parameters from its parent namespace
     + `net.ipv4.tcp_l3mdev_accept`: optional for vrf mode, let packets be forwarded from aronet vrf accept tcp traffic
     + `net.ipv4.udp_l3mdev_accept`: optional for vrf mode, let packets be forwarded from aronet vrf accept udp traffic

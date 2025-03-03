@@ -1,3 +1,4 @@
+import subprocess
 from pyroute2 import IPRoute, NetNS, NetlinkError
 
 
@@ -33,13 +34,15 @@ class Netlink:
         if "state" not in kwargs:
             kwargs["state"] = "up"
         ns = self._netns_dict[netns]
-        ns.link("add", ifname=ifname, **kwargs)
+        r = ns.link("add", ifname=ifname, **kwargs)
         idx = self.get_interface_index(netns=netns, ifname=ifname)
 
         for addr in addresses:
             ip = addr.split("/")[0]
             len = str(addr.split("/")[1])
             ns.addr("add", index=idx, address=ip, prefixlen=len)
+
+        return r
 
     def interface_wait_and_set(
         self, ifname: str, netns: str = "localhost", addresses: list[str] = [], **kwargs
@@ -54,14 +57,14 @@ class Netlink:
 
         if "state" not in kwargs:
             kwargs["state"] = "up"
-        ns.link("set", ifname=ifname, **kwargs)
+        return ns.link("set", ifname=ifname, **kwargs)
 
     def create_route(self, dst: str, netns: str = "localhost", **kwargs):
         if "oif" in kwargs:
             kwargs["oif"] = self.get_interface_index(kwargs["oif"])
 
         ns = self._netns_dict[netns]
-        ns.route("add", dst=dst, **kwargs)
+        return ns.route("replace", dst=dst, **kwargs)
 
     def get_interface_index(self, ifname: str, netns: str = "localhost"):
         return self._netns_dict[netns].link_lookup(ifname=ifname)[0]

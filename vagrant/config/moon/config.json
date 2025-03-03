@@ -1,0 +1,18 @@
+{
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMC4CAQAwBQYDK2VwBCIEINWlTiVYz8YqhHQ2Gl1mNVNlZ5iH/Y31jZFluWhLkWv/\n-----END PRIVATE KEY-----",
+  "organization": "test1",
+  "common_name": "moon",
+  "daemon": {
+    "prefixs": [
+      "192.168.128.1/24"
+    ],
+    "use_netns": false,
+    "network": "fd66::1/64"
+  },
+  "endpoints": [
+    {
+      "address": "192.168.121.140",
+      "port": 12025
+    }
+  ]
+}

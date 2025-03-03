@@ -14,7 +14,7 @@ WORKDIR /app
 RUN pip install .
 
 FROM debian:12 AS runner
-RUN apt update && apt install -y python3 iproute2 iputils-ping tcpdump gdb procps curl nftables
+RUN apt update && apt install -y python3 iproute2 iputils-ping tcpdump gdb procps curl nftables iperf3 vim systemtap net-tools
 
 COPY --from=builder /venv /venv
 

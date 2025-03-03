@@ -1,0 +1,117 @@
+# vi: set ft=ruby :
+
+base_box = "debian/bookworm64"
+hosts=[
+  {
+    :hostname => "moon",
+    :ip => "192.168.122.10",
+  },
+  {
+    :hostname => "sun",
+    :ip => "192.168.122.11",
+  }
+]
+
+builder_cpus = 24
+builder_mems = 32 * 1024
+builder_threads = 16
+Vagrant.configure("2") do |config|
+  # builder be used to build custom kernel with kgdb enabled and aronet
+  # new kernel packages will be placed in /build/*.deb
+  config.vm.define "builder" do |node|
+    node.vm.box = base_box
+    node.vm.hostname = "builder"
+    node.vm.provider "virtualbox" do |v|
+        v.memory = builder_mems
+        v.cpus = builder_cpus
+    end
+    node.vm.provider "libvirt" do |v|
+        v.memory = builder_mems
+        v.cpus = builder_cpus
+    end
+
+    node.vm.provision "shell", inline: <<-SHELL
+      apt-get -y update
+      apt-get install -y build-essential pahole
+      apt-get build-dep linux
+      apt-get install -y linux-source-6.1
+      apt install -y python3 python3-pip python3-venv
+      apt install -y git gcc automake autoconf libtool pkg-config gettext perl gperf flex bison libssl-dev ninja-build libncurses-dev libreadline-dev
+
+      python3 -m venv /venv
+      /venv/bin/pip install build
+      echo "PATH=/venv/bin:$PATH" >> /etc/profile
+      echo "export PATH" >> /etc/profile
+
+      mkdir /dist
+    SHELL
+
+    node.vm.provision "build-kernel", type: "shell", run: "never", inline: <<-SHELL
+      mkdir /build || true
+      cd /build
+      rm -rf *.deb
+      tar xaf /usr/src/linux-source-6.1.tar.xz
+      cd linux-source*
+      yes '' | make localmodconfig
+
+      scripts/config --disable MODULE_SIG
+      scripts/config --enable FRAME_POINTER
+      scripts/config --enable DEBUG_INFO
+      scripts/config --enable KGDB
+      scripts/config --enable KGDB_SERIAL_CONSOLE
+
+      yes '' | make bindeb-pkg -j#{builder_threads}
+
+      cp ../*.deb /dist/
+    SHELL
+    node.vm.provision "clean", type: "shell", run: "never", inline: <<-SHELL
+      rm -rf /dist/*
+    SHELL
+
+    node.vm.provision "build-aronet", type: "shell", run: "never", inline: <<-SHELL
+      cd /vagrant
+      python3 -m build
+      cp dist/*.whl /dist
+    SHELL
+  end
+
+  hosts.each do |host|
+    config.vm.define host[:hostname] do |node|
+      node.vm.box = base_box
+      node.vm.hostname = host[:hostname]
+      node.vm.provision "shell", inline: <<-SHELL
+        apt-get update
+        apt-get install -y python3 python3-venv iproute2 iputils-ping tcpdump gdb procps curl nftables vim net-tools trace-cmd zstd
+        DEBIAN_FRONTEND=noninteractive apt-get install -y iperf3
+
+        python3 -m venv /venv
+
+        echo "PATH=/venv/bin:$PATH" >> /etc/profile
+        echo "export PATH" >> /etc/profile
+      SHELL
+
+      node.vm.provision "install-kernel", type: "shell", run: "never", inline: <<-SHELL
+        dpkg -i /dist/*.deb
+        echo 'GRUB_CMDLINE_LINUX_DEFAULT="console=tty0 nokaslr kgdboc=kbd,ttyS0,115200"' | sudo tee -a /etc/default/grub
+        update-initramfs -u
+        update-grub2
+      SHELL
+
+      node.vm.provision "install-aronet", type: "shell", run: "never", inline: <<-SHELL
+        pip install /dist/*.whl
+      SHELL
+
+      node.vm.provision "reinstall-aronet", type: "shell", run: "never", inline: <<-SHELL
+        pip uninstall -y aronet
+        pip install /dist/*.whl
+      SHELL
+
+
+      node.vm.provision "breakpoint", type: "shell", run: "never", inline: <<-SHELL
+        echo g > /proc/sysrq-trigger
+      SHELL
+    end
+    config.vm.synced_folder "./dist", "/dist", type: "rsync"
+  end
+  config.vm.synced_folder "../", "/vagrant", type: "rsync", rsync__exclude: [".venv", ".github", ".ruff_cache"]
+end
