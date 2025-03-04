@@ -1,5 +1,6 @@
 import ipaddress
 import os
+import threading
 
 from jsonschema import validate
 
@@ -227,11 +228,22 @@ class Config:
 
     @property
     def should_exit(self):
-        return self.__should_exit
+        """this property will be used in different threads"""
+        if not hasattr(self, "__should_exit_mutex"):
+            self.__should_exit_mutex = threading.Lock()
+
+        with self.__should_exit_mutex:
+            r = self.__should_exit
+
+        return r
 
     @should_exit.setter
     def should_exit(self, value):
-        self.__should_exit = value
+        if not hasattr(self, "__should_exit_mutex"):
+            self.__should_exit_mutex = threading.Lock()
+
+        with self.__should_exit_mutex:
+            self.__should_exit = value
 
     @property
     def ifname(self) -> str:
