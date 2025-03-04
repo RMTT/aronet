@@ -8,9 +8,7 @@ from asyncio.exceptions import CancelledError
 from logging import Logger
 from typing import OrderedDict
 
-from pyroute2 import IPRoute
 from pyroute2.netlink import AF_INET6
-from pyroute2.netlink.rtnl.ifinfmsg import IFF_MULTICAST, IFF_UP
 
 from aronet.config import Config
 from aronet.daemon import ACTION_LOAD_CONNS, Daemon, InternalMessage
