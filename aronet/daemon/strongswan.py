@@ -6,15 +6,13 @@ import socket
 import concurrent.futures
 from asyncio.exceptions import CancelledError
 from logging import Logger
-import subprocess
-import tempfile
 from typing import OrderedDict
 
 from pyroute2 import IPRoute
 from pyroute2.netlink import AF_INET6
 from pyroute2.netlink.rtnl.ifinfmsg import IFF_MULTICAST, IFF_UP
 
-from aronet.config import NFT_PORT_FORWARD_TEMPLATE, Config
+from aronet.config import Config
 from aronet.daemon import ACTION_LOAD_CONNS, Daemon, InternalMessage
 from aronet.netlink import Netlink
 from aronet.strongswan.client import Client
@@ -293,33 +291,6 @@ class Strongswan(Daemon):
                     oif=self._config.ifname,
                     **extra_args,
                 )
-
-    def __setup_nftables(self, local_ports: set):
-        # configure port-forwarding if we use netns mode
-        if self._config.use_netns:
-            nft_temp_v4 = 'ip saddr != {peeraddr} iif != "{ifname}" udp dport {port} dnat {peeraddr}:{port}\n'
-            nft_temp_v6 = 'ip6 saddr != {peeraddr} iif != "{ifname}" udp dport {port} dnat {peeraddr}:{port}\n'
-            nft_commands = ""
-            for port in local_ports:
-                nft_commands += nft_temp_v4.format(
-                    port=port,
-                    peeraddr=self._config.netns_peeraddr_v4.ip.exploded,
-                    ifname=self._config.ifname,
-                )
-                nft_commands += nft_temp_v6.format(
-                    port=port,
-                    peeraddr=self._config.netns_peeraddr.ip.exploded,
-                    ifname=self._config.ifname,
-                )
-            self._logger.debug(f"will add following nftable rules: {nft_commands}")
-            nft_tmpfile = tempfile.NamedTemporaryFile()
-            nft_tmpfile.write(
-                NFT_PORT_FORWARD_TEMPLATE.format(commands=nft_commands).encode()
-            )
-            nft_tmpfile.flush()
-            subprocess.run(["nft", "-f", nft_tmpfile.name], check=True)
-            self._logger.debug("nftables added")
-            nft_tmpfile.close()
 
     def __load_conn(self, _config: dict, registry: dict):
         # config contains private key data, so we shouldn't keep it in memory for long time

@@ -102,26 +102,6 @@ _REGISTRY_SCHEMA = {
 }
 
 
-NFT_INIT_TEMPLATE = """
-table inet aronet {{
-    chain postrouting {{
-        type nat hook postrouting priority 100;
-        ip6 saddr {peeraddr_v6} oif != "{ifname}" masquerade
-        ip saddr {peeraddr_v4} oif != "{ifname}" masquerade
-    }}
-}}
-"""
-
-NFT_PORT_FORWARD_TEMPLATE = """
-table inet aronet {{
-	chain prerouting {{
-		type nat hook prerouting priority 0; policy accept;
-        {commands}
-	}}
-}}
-"""
-
-
 class Config:
     _instance = None
 
