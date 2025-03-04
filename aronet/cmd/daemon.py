@@ -3,15 +3,13 @@ import asyncio
 import ipaddress
 import json
 import os
-import tempfile
 from logging import Logger
-import subprocess
 from typing import Callable
 
 from pyroute2.netlink import AF_INET6
 
 from aronet.cmd.base import BaseCommand
-from aronet.config import NFT_INIT_TEMPLATE, Config
+from aronet.config import Config
 from aronet.daemon.backend import BackendDaemon
 from aronet.daemon.bird import Bird
 from aronet.daemon.strongswan import Strongswan
