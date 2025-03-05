@@ -3,7 +3,6 @@ import json
 from typing import Callable
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.backends import default_backend
-from pyroute2 import NetlinkError
 
 from aronet.config import Config
 
