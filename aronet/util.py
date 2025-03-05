@@ -81,15 +81,6 @@ async def read_stream(stream, callback: Callable, config: Config):
         callback(line.decode().strip())
 
 
-def netlink_ignore_exists(callback: Callable, *args, **kwargs):
-    try:
-        callback(*args, **kwargs)
-    except NetlinkError as e:
-        # ignore if netlink exists
-        if e.code != 17:
-            raise e
-
-
 def dump_message(data: dict) -> bytes:
     return (json.dumps(data) + "\n").encode()
 

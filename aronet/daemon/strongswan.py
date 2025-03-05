@@ -1,10 +1,10 @@
 import asyncio
-from hashlib import sha256
+import concurrent.futures
 import ipaddress
 import os
 import socket
-import concurrent.futures
 from asyncio.exceptions import CancelledError
+from hashlib import sha256
 from logging import Logger
 from typing import OrderedDict
 

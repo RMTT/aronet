@@ -1,9 +1,27 @@
+from typing import Callable
 from pyroute2 import IPRoute, NetNS, NetlinkError
 
 
 # Why not use ndb?
 # ndb cannot set srv6 route
 # ndb will raise meaningless errors
+
+
+def netlink_ignore_exists(callback: Callable, *args, **kwargs):
+    try:
+        callback(*args, **kwargs)
+    except NetlinkError as e:
+        # ignore if netlink exists
+        if e.code != 17:
+            raise e
+
+
+def netlink_ignore_not_exists(callback: Callable, *args, **kwargs):
+    try:
+        callback(*args, **kwargs)
+    except NetlinkError as e:
+        if e.code not in (3, 19):
+            raise e
 
 
 class Netlink:
@@ -26,6 +44,11 @@ class Netlink:
         if ns not in self._netns_dict:
             ns_obj = NetNS(ns)
             self._netns_dict[ns] = ns_obj
+
+    def clear_netns(self):
+        for name, ns in self._netns_dict.items():
+            if name != "localhost":
+                ns.remove()
 
     def create_interface(
         self, ifname: str, netns: str = "localhost", addresses: list[str] = [], **kwargs
@@ -65,14 +88,25 @@ class Netlink:
         ns = self._netns_dict[netns]
         return ns.route("replace", dst=dst, **kwargs)
 
-    def get_interface_index(self, ifname: str, netns: str = "localhost"):
-        return self._netns_dict[netns].link_lookup(ifname=ifname)[0]
+    def remove_route(self, dst: str, netns: str = "localhost", **kwargs):
+        if "oif" in kwargs:
+            kwargs["oif"] = self.get_interface_index(kwargs["oif"])
+
+        ns = self._netns_dict[netns]
+        netlink_ignore_not_exists(lambda: ns.route("del", dst=dst, **kwargs))
+
+    def flush_route_table(self, table: int, netns: str = "localhost"):
+        ns = self._netns_dict[netns]
+        ns.flush_routes(table=table)
+
+    def get_interface_index(self, ifname: str, netns: str = "localhost") -> None | int:
+        ids = self._netns_dict[netns].link_lookup(ifname=ifname)
+
+        if len(ids) == 0:
+            return None
+        return ids[0]
 
     def remove_interface(self, ifname: str, netns: str = "localhost"):
         ns = self._netns_dict[netns]
 
-        try:
-            ns.link("del", ifname=ifname)
-        except NetlinkError as e:
-            if e.code != 19:
-                raise e
+        netlink_ignore_not_exists(lambda: ns.link("del", ifname=ifname))

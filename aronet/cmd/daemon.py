@@ -27,6 +27,7 @@ class DaemonCommand(BaseCommand):
 
         self.__message_handlers = {}
 
+        # make sure that __strongswan, __bird and __backend have no other references
         self.__strongswan = Strongswan(config, logger)
         self.__add_message_handler(
             self.__strongswan.actions, self.__strongswan.handle_actions
@@ -79,9 +80,26 @@ class DaemonCommand(BaseCommand):
         await self.__bird.exit_callback()
         await self.__backend.exit_callback()
 
+        self.clean_netlink_resources()
+
         del self.__strongswan
         del self.__bird
         del self.__backend
+
+    def clean_netlink_resources(self, nl: Netlink = None):
+        # we clearing the interfaces, the routes related to interfaces will be removed automatically.
+        if nl is None:
+            nl = Netlink()
+        if_ids = nl.get_interface_index(ifname=self.config.ifname)
+        if if_ids is not None:
+            nl.remove_interface(ifname=self.config.ifname)
+
+        if not self.config.use_netns:
+            # clear vrf table
+            nl.flush_route_table(table=self.config.vrf_route_table)
+        else:
+            # clear netns
+            nl.clear_netns()
 
     def run(self, args: argparse.Namespace) -> bool:
         match args.action:
@@ -145,7 +163,7 @@ class DaemonCommand(BaseCommand):
 
         # TODO: clean up interfaces which existed before
         nl = Netlink()
-        nl.remove_interface(self.config.ifname)
+        self.clean_netlink_resources(nl)
 
         if self.config.use_netns:
             netns = self.config.netns_name
@@ -224,5 +242,3 @@ class DaemonCommand(BaseCommand):
             encap={"type": "seg6local", "action": "End"},
             **extra_args,
         )
-
-        pass
