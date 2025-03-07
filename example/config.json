@@ -7,7 +7,8 @@
       "192.168.128.1/24",
       "240e::1/60"
     ],
-    "network": "fd00::1/64"
+    "network": "fd00::1/64",
+    "use_netns": true
   },
   "endpoints": [
     {

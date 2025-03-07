@@ -83,14 +83,14 @@ class Netlink:
 
     def create_route(self, dst: str, netns: str = "localhost", **kwargs):
         if "oif" in kwargs:
-            kwargs["oif"] = self.get_interface_index(kwargs["oif"])
+            kwargs["oif"] = self.get_interface_index(kwargs["oif"], netns=netns)
 
         ns = self._netns_dict[netns]
         return ns.route("replace", dst=dst, **kwargs)
 
     def remove_route(self, dst: str, netns: str = "localhost", **kwargs):
         if "oif" in kwargs:
-            kwargs["oif"] = self.get_interface_index(kwargs["oif"])
+            kwargs["oif"] = self.get_interface_index(kwargs["oif"], netns=netns)
 
         ns = self._netns_dict[netns]
         netlink_ignore_not_exists(lambda: ns.route("del", dst=dst, **kwargs))
