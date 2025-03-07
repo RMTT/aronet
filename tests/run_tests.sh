@@ -6,7 +6,7 @@ SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)
 
 setup() {
     echo "trying to create docker network..."
-    docker network create --subnet=172.32.0.0/16 --ipv6 aronet
+    docker network create --subnet=172.32.0.0/16 aronet
     echo "done!"
 
     echo "trying to run aronet in moon node..."
@@ -93,4 +93,4 @@ cleanup
 setup
 sleep 3
 test_connectivity
-#cleanup
+cleanup
