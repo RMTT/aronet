@@ -26,7 +26,7 @@ setup() {
         --net aronet \
         --ip 172.32.0.2 \
         -v "$SCRIPT_DIR"/config:/config \
-        aronet:test aronet daemon run -c /config/moon/config.json
+        aronet:test aronet daemon run -c /config/moon/config.json -r /config/registry.json
     echo "done!"
 
     echo "trying to run aronet in sun node..."
@@ -46,7 +46,7 @@ setup() {
         --net aronet \
         --ip 172.32.0.3 \
         -v "$SCRIPT_DIR"/config:/config \
-        aronet:test aronet daemon run -c /config/sun/config.json
+        aronet:test aronet daemon run -c /config/sun/config.json -r /config/registry.json
     echo "done!"
 }
 
@@ -91,8 +91,6 @@ test_connectivity() {
 
 cleanup
 setup
-sleep 2
-load_conn
-sleep 2
+sleep 3
 test_connectivity
 #cleanup

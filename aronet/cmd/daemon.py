@@ -47,6 +47,8 @@ class DaemonCommand(BaseCommand):
         parser.add_argument(
             "-c", "--config", help="path of configuration file", type=str
         )
+        parser.add_argument("-r", "--registry", help="path of registry file", type=str)
+
         parser.add_argument("action", help="daemon actions", choices=["run", "info"])
 
     def __del__(self) -> None:
@@ -110,6 +112,10 @@ class DaemonCommand(BaseCommand):
                     return False
                 with open(args.config, "r") as f:
                     self.config.custom_config = json.loads(f.read())
+
+                if args.registry:
+                    with open(args.registry, "r") as f:
+                        self.config.custom_registry = json.loads(f.read())
 
                 self.__init_run()
 

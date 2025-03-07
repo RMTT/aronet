@@ -157,6 +157,10 @@ class Config:
         return os.getenv(ENV_RUNTIME_DIR, "/var/run/aronet")
 
     @property
+    def swanctl_dir(self) -> str:
+        return os.path.join(self.runtime_dir, "swanctl")
+
+    @property
     def vici_socket_path(self) -> str:
         return os.path.join(self.runtime_dir, "charon.vici")
 

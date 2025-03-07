@@ -121,6 +121,7 @@ class Strongswan(Daemon):
         if msg.action == ACTION_LOAD_CONNS:
             registry = msg.data["registry"]
             self._logger.info("tring to add some connections...")
+            self._config.custom_registry = registry
             self.__load_conn(self._config.custom_config, registry)
 
     async def exit_callback(self):
@@ -153,6 +154,7 @@ class Strongswan(Daemon):
         env = {}
         env.update(os.environ)
         env["STRONGSWAN_CONF"] = self._config.strongsconf_path
+        env["SWANCTL_DIR"] = self._config.swanctl_dir
 
         self._logger.info("running charon...")
 
@@ -183,6 +185,9 @@ class Strongswan(Daemon):
                 await asyncio.sleep(1)
 
         self._clean = True
+
+        if self._config.custom_registry:
+            self.__load_conn(self._config.custom_config, self._config.custom_registry)
 
         self.__tasks = asyncio.gather(
             read_stream(self.process.stdout, self.__process_output, self._config),
@@ -313,7 +318,8 @@ class Strongswan(Daemon):
                                     "mode": "tunnel",
                                     "updown": self._config.updown_path,
                                     "dpd_action": "restart",
-                                    "start_action": "start",
+                                    "start_action": "start|trap",
+                                    "close_action": "start|trap",
                                 }
                             },
                         }
