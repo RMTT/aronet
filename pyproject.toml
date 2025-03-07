@@ -5,7 +5,6 @@ readme = "README.md"
 version = "v0.1-beta"
 requires-python = ">= 3.10"
 dependencies = [
-    "vici",
     "cryptography",
     "pyroute2",
     "jsonschema"

@@ -1,4 +1,4 @@
-project('strongswan', 'c', meson_version : '>=0.56.0')
+project('strongswan', 'c', meson_version : '>=0.63.0')
 
 find_program('make', required: true)
 
@@ -47,3 +47,13 @@ custom_target('strongswan',
   install_dir: python.get_install_dir() / 'aronet/libexec',
   output: [ 'charon', 'swanctl' ]
   )
+
+python_sources = [
+  'src/libcharon/plugins/vici/python/vici/__init__.py',
+  'src/libcharon/plugins/vici/python/vici/command_wrappers.py',
+  'src/libcharon/plugins/vici/python/vici/exception.py',
+  'src/libcharon/plugins/vici/python/vici/protocol.py',
+  'src/libcharon/plugins/vici/python/vici/session.py',
+  ]
+
+python.install_sources(python_sources, subdir: 'vici', preserve_path: false)
