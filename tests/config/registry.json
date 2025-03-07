@@ -28,7 +28,9 @@
         "common_name": "sun",
         "endpoints": [
           {
-            "address": "172.32.0.3",
+            "address_family": "ip4",
+            "address": null,
+            "serialNumber": 0,
             "port": 12025
           }
         ],

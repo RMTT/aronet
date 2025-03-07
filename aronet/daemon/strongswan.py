@@ -263,6 +263,7 @@ class Strongswan(Daemon):
         for local in config["endpoints"]:
             local_id = build_id(config["organization"], config["common_name"], local)
             local_name = f"{config['organization']}-{config['common_name']}"
+            local_ip = local["address"]
 
             for organization in registry:
                 for node in organization["nodes"]:
@@ -277,6 +278,11 @@ class Strongswan(Daemon):
                         networks[net].append(ipaddress.ip_network(prefix, False))
 
                     for remote in node["endpoints"]:
+                        remote_ip = remote["address"]
+
+                        if remote_ip is None and local_id is None:
+                            continue
+
                         if not same_address_family(local, remote):
                             continue
 
@@ -292,8 +298,10 @@ class Strongswan(Daemon):
 
                         connection[connection_name] = {
                             "version": 2,
-                            "local_addrs": [local["address"]],
-                            "remote_addrs": [remote["address"]],
+                            "local_addrs": [local["address"] if local_ip else "%any"],
+                            "remote_addrs": [
+                                remote["address"] if remote_ip else "%any"
+                            ],
                             "local_port": local["port"],
                             "remote_port": remote["port"],
                             "encap": True,
