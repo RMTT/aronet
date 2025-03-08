@@ -8,7 +8,8 @@
       "240e::1/60"
     ],
     "network": "fd00::1/64",
-    "use_netns": true
+    "use_netns": true,
+    "extra_ip": ["192.168.128.1/32"]
   },
   "endpoints": [
     {

@@ -2,15 +2,18 @@
 
 set -e
 
+if [ -z "$DOCKER" ]; then
+    DOCKER=docker
+fi
 SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)
 
 setup() {
-    echo "trying to create docker network..."
-    docker network create --subnet=172.32.0.0/16 aronet
+    echo "trying to create network..."
+    eval "$DOCKER" network create --subnet=172.32.0.0/16 aronet
     echo "done!"
 
     echo "trying to run aronet in moon node..."
-    docker run \
+    eval "$DOCKER" run \
         --cap-add NET_ADMIN --cap-add SYS_MODULE --cap-add SYS_ADMIN \
         --security-opt apparmor=unconfined --security-opt seccomp=unconfined \
         --privileged \
@@ -30,7 +33,7 @@ setup() {
     echo "done!"
 
     echo "trying to run aronet in sun node..."
-    docker run \
+    eval "$DOCKER" run \
         --cap-add NET_ADMIN --cap-add SYS_MODULE --cap-add SYS_ADMIN \
         --security-opt apparmor=unconfined --security-opt seccomp=unconfined \
         --privileged \
@@ -54,37 +57,34 @@ cleanup() {
     echo "cleanup..."
 
     echo "remove container moon.."
-    docker container rm -f moon || true
+    eval "$DOCKER" container rm -f moon || true
     echo "done!"
 
     echo "remove container sun.."
-    docker container rm -f sun || true
+    eval "$DOCKER" container rm -f sun || true
     echo "done!"
 
     echo "remove network aronet..."
-    docker network rm -f aronet || true
+    eval "$DOCKER" network rm aronet || true
     echo "done!"
 }
 
 load_conn() {
     echo "trying to load connections in moon..."
-    docker exec moon aronet load -r /config/registry.json
+    eval "$DOCKER" exec moon aronet load -r /config/registry.json
     echo "done!"
 
     echo "trying to load connections in sun..."
-    docker exec sun aronet load -r /config/registry.json
+    eval "$DOCKER" exec sun aronet load -r /config/registry.json
     echo "done!"
 }
 
 test_connectivity() {
-    docker exec moon ip addr add 192.168.128.1/32 dev aronet
-    docker exec sun ip addr add 192.168.129.1/32 dev aronet
+    eval "$DOCKER" exec moon ping -c 5 192.168.129.1
+    eval "$DOCKER" exec sun ping -c 5 192.168.128.1
 
-    docker exec moon ping -c 5 192.168.129.1
-    docker exec sun ping -c 5 192.168.128.1
-
-    docker exec moon aronet swanctl --list-sas
-    docker exec moon aronet swanctl --list-conns
+    eval "$DOCKER" exec moon aronet swanctl --list-sas
+    eval "$DOCKER" exec moon aronet swanctl --list-conns
 
     echo "moon and sun are successfully connectted!"
 }

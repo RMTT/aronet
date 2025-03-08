@@ -32,6 +32,10 @@ _CONFIG_SCHEMA = {
                     "type": "array",
                     "items": {"type": "string"},
                 },
+                "extra_ip": {
+                    "type": "array",
+                    "items": {"type": "string"},
+                },
                 "network": {"type": "string"},
                 "ifname": {"type": "string"},
                 "route_table": {"type": "integer"},
@@ -185,6 +189,16 @@ class Config:
         )
 
         self.__custom_config = value
+
+    @property
+    def main_if_extra_ip(
+        self,
+    ) -> list[ipaddress.IPv4Interface | ipaddress.IPv6Interface]:
+        result = []
+        if "extra_ip" in self.__custom_config["daemon"]:
+            for ip in self.__custom_config["daemon"]["extra_ip"]:
+                result.append(ipaddress.ip_interface(ip))
+        return result
 
     @property
     def main_if_addr(self):

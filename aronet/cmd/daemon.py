@@ -178,7 +178,8 @@ class DaemonCommand(BaseCommand):
             # create the main interfaces(veth pair in case) for connectivity
             nl.create_interface(
                 ifname=self.config.ifname,
-                addresses=[self.config.main_if_addr.with_prefixlen],
+                addresses=[self.config.main_if_addr.with_prefixlen]
+                + list(map(lambda ip: ip.with_prefixlen, self.config.main_if_extra_ip)),
                 kind="veth",
                 peer={
                     "ifname": self.config.ifname,
@@ -224,7 +225,8 @@ class DaemonCommand(BaseCommand):
                 kind="vrf",
                 ifname=self.config.ifname,
                 vrf_table=self.config.vrf_route_table,
-                addresses=[self.config.main_if_addr.with_prefixlen],
+                addresses=[self.config.main_if_addr.with_prefixlen]
+                + list(map(lambda ip: ip.with_prefixlen, self.config.main_if_extra_ip)),
             )
 
         self.__setup_srv6(nl)

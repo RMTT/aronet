@@ -7,7 +7,8 @@
       "192.168.128.1/24"
     ],
     "use_netns": false,
-    "network": "fd66::1/64"
+    "network": "fd66::1/64",
+    "extra_ip": ["192.168.128.1/32"]
   },
   "endpoints": [
     {
