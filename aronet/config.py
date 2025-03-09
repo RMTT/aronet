@@ -4,8 +4,6 @@ import threading
 
 from jsonschema import validate
 
-from aronet.util import path_exists_in_dict
-
 ENV_CHARON_PATH = "CHARON_PATH"
 ENV_SWANCTL_PATH = "SWANCTL_PATH"
 ENV_BIRD_PATH = "BIRD_PATH"
@@ -115,6 +113,9 @@ class CustomConfig(dict):
 
     def __contains__(self, key):
         return self.get(key) is not None
+
+    def copy(self):
+        return CustomConfig(self.__data.copy())
 
     def __str__(self) -> str:
         return str(self.__data)

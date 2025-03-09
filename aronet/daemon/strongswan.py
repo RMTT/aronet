@@ -10,7 +10,7 @@ from typing import OrderedDict
 
 from pyroute2.netlink import AF_INET6
 
-from aronet.config import Config
+from aronet.config import Config, CustomConfig
 from aronet.daemon import ACTION_LOAD_CONNS, Daemon, InternalMessage
 from aronet.netlink import Netlink
 from aronet.strongswan.client import Client
@@ -245,8 +245,8 @@ class Strongswan(Daemon):
                     **extra_args,
                 )
 
-    def __load_conn(self, _config: dict, registry: dict):
-        # config contains private key data, so we shouldn't keep it in memory for long time
+    def __load_conn(self, _config: CustomConfig, registry: dict):
+        # config may contains private key data, so we shouldn't keep it in memory for long time
         config = _config.copy()
         if not str(config["private_key"]).startswith("-----BEGIN PRIVATE KEY-----"):
             with open(config["private_key"], "r") as f:
