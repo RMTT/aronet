@@ -1,0 +1,21 @@
+{
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMC4CAQAwBQYDK2VwBCIEINWlTiVYz8YqhHQ2Gl1mNVNlZ5iH/Y31jZFluWhLkWv/\n-----END PRIVATE KEY-----",
+  "organization": "test1",
+  "common_name": "earth",
+  "daemon": {
+    "prefixs": [
+      "192.168.130.1/24"
+    ],
+    "use_netns": false,
+    "network": "fd68::1/64",
+    "extra_ip": ["192.168.130.1/32"],
+    "ifname": "test"
+  },
+  "endpoints": [
+    {
+      "address": "172.32.0.4",
+      "port": 12025,
+      "serial_number": 0
+    }
+  ]
+}

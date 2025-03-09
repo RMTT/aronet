@@ -34,10 +34,8 @@ class Strongswan(Daemon):
               stdout {{
                   # to achive realtime log capture
                   flush_line = yes
-              }}
-              stderr {{
-                  # to achive realtime log capture
-                  flush_line = yes
+                  ike = 1
+                  default = 0
               }}
           }}
 
@@ -306,6 +304,7 @@ class Strongswan(Daemon):
                             "remote_port": remote["port"],
                             "encap": True,
                             "mobike": False,
+                            "keyingtries": 0,
                             "unique": "replace",
                             "if_id_in": "%unique",
                             "if_id_out": "%unique",
@@ -326,8 +325,8 @@ class Strongswan(Daemon):
                                     "mode": "tunnel",
                                     "updown": self._config.updown_path,
                                     "dpd_action": "restart",
-                                    "start_action": "start|trap",
-                                    "close_action": "start|trap",
+                                    "start_action": "start",
+                                    "close_action": "start",
                                 }
                             },
                         }

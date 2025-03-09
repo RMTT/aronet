@@ -18,6 +18,22 @@
             "192.168.128.1/24"
           ]
         }
+      },
+      {
+        "common_name": "earth",
+        "endpoints": [
+          {
+            "serial_number": 0,
+            "address": "172.32.0.4",
+            "port": 12025
+          }
+        ],
+        "remarks": {
+          "network": "fd68::1/64",
+          "prefixs": [
+            "192.168.130.1/24"
+          ]
+        }
       }
     ]
   },
@@ -39,6 +55,23 @@
           "network": "fd67::1/64",
           "prefixs": [
             "192.168.129.1/24"
+          ]
+        }
+      },
+      {
+        "common_name": "mars",
+        "endpoints": [
+          {
+            "address_family": "ip4",
+            "address": "172.32.0.5",
+            "serial_number": 0,
+            "port": 12025
+          }
+        ],
+        "remarks": {
+          "network": "fd69::1/64",
+          "prefixs": [
+            "192.168.131.1/24"
           ]
         }
       }

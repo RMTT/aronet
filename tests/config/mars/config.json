@@ -1,0 +1,22 @@
+{
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMC4CAQAwBQYDK2VwBCIEIAF/ZQ4YsMaErUbLI53OV8J+YpXZxHT9cB9dGdtnUkzK\n-----END PRIVATE KEY-----",
+  "organization": "test2",
+  "common_name": "mars",
+  "daemon": {
+    "prefixs": [
+      "192.168.131.1/24"
+    ],
+    "use_netns": true,
+    "network": "fd69::1/64",
+    "extra_ip": ["192.168.131.1/32"],
+    "ifname": "test"
+  },
+  "endpoints": [
+    {
+      "address_family": "ip4",
+      "address": "172.32.0.5",
+      "serial_number": 0,
+      "port": 12025
+    }
+  ]
+}
