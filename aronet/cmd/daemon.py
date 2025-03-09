@@ -167,10 +167,10 @@ class DaemonCommand(BaseCommand):
             route_networks.append(net)
         self.config.route_networks = route_networks
 
-        # TODO: clean up interfaces which existed before
         nl = Netlink()
         self.clean_netlink_resources(nl)
 
+        self.logger.info(f"create main interface {self.config.ifname}...")
         if self.config.use_netns:
             netns = self.config.netns_name
             nl.add_netns(netns)

@@ -143,6 +143,9 @@ class CustomConfig(dict):
     def __setitem__(self, key, value):
         self.__data[key] = value
 
+    def __bool__(self):
+        return True
+
 
 class Config:
     _instance = None
