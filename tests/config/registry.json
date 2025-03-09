@@ -7,6 +7,7 @@
         "common_name": "moon",
         "endpoints": [
           {
+            "serial_number": 0,
             "address": "172.32.0.2",
             "port": 12025
           }
@@ -30,7 +31,7 @@
           {
             "address_family": "ip4",
             "address": null,
-            "serialNumber": 0,
+            "serial_number": 0,
             "port": 12025
           }
         ],

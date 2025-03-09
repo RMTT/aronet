@@ -13,7 +13,8 @@
   "endpoints": [
     {
       "address": "172.32.0.2",
-      "port": 12025
+      "port": 12025,
+      "serial_number": 0,
     }
   ]
 }

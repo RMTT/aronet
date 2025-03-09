@@ -9,20 +9,7 @@ from aronet.config import Config
 
 def build_id(organization: str, common_name: str, endpoint: dict) -> str:
     id = f"O={organization},CN={common_name}"
-    if "serial_number" in endpoint:
-        id += f",serialNumber={endpoint['serial_number']}"
-    else:
-        address = endpoint["address"]
-        addr_desc = ""
-
-        if address is None:
-            addr_desc = "0.0.0.0"
-        elif address_is_v6(address):
-            addr_desc = f"[{address}]"
-        elif address_is_v4(address):
-            addr_desc = endpoint["address"]
-
-        id += f",D={addr_desc}:{endpoint['port']}"
+    id += f",serialNumber={endpoint['serial_number']}"
     return id
 
 
