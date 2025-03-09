@@ -11,7 +11,7 @@ if [ -f $ENV_FILE ]; then
     source $ENV_FILE
 fi
 
-LINK="$ARONET_IF_PREFIX"-$(printf '%08x\n' "$PLUTO_IF_ID_OUT")
+LINK="$ARONET_IF_PREFIX"-$(printf '%x\n' "$PLUTO_IF_ID_OUT")
 case "$PLUTO_VERB" in
 up-client)
     ip link add "$LINK" type xfrm if_id "$PLUTO_IF_ID_OUT"
