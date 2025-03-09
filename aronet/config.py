@@ -4,6 +4,8 @@ import threading
 
 from jsonschema import validate
 
+from aronet.util import path_exists_in_dict
+
 ENV_CHARON_PATH = "CHARON_PATH"
 ENV_SWANCTL_PATH = "SWANCTL_PATH"
 ENV_BIRD_PATH = "BIRD_PATH"
@@ -107,6 +109,40 @@ _REGISTRY_SCHEMA = {
 }
 
 
+class CustomConfig(dict):
+    def __init__(self, data: dict):
+        self.__data = data
+
+    def __contains__(self, key):
+        return self.get(key) is not None
+
+    def __str__(self) -> str:
+        return str(self.__data)
+
+    def __getitem__(self, key, /):
+        keys = key.split(".")
+
+        d = self.__data
+        for k in keys:
+            if not isinstance(d, dict):
+                raise KeyError(f"{key} doesn't exist in {self.__data}")
+            d = d.__getitem__(k)
+        return d
+
+    def get(self, key):
+        keys = key.split(".")
+
+        d = self.__data
+        for k in keys:
+            if not isinstance(d, dict):
+                return None
+            d = d.get(k)
+        return d
+
+    def __setitem__(self, key, value):
+        self.__data[key] = value
+
+
 class Config:
     _instance = None
 
@@ -174,10 +210,12 @@ class Config:
         return self.__custom_config
 
     @custom_config.setter
-    def custom_config(self, value):
+    def custom_config(self, value: dict):
         validate(value, _CONFIG_SCHEMA)
+        self.__custom_config = CustomConfig(value)
+
         self.__custom_network = ipaddress.ip_network(
-            value["daemon"]["network"], strict=False
+            self.__custom_config["daemon.network"], strict=False
         )
         if self.__custom_network.version != 6 or self.__custom_network.prefixlen > 64:
             raise Exception(
@@ -187,8 +225,6 @@ class Config:
         self.__aronet_network = ipaddress.ip_network(
             f"{self.__custom_network.network_address + ARONET_NETWORK_SUFFIX}/80"
         )
-
-        self.__custom_config = value
 
     @property
     def main_if_extra_ip(
@@ -265,12 +301,8 @@ class Config:
 
     @property
     def ifname(self) -> str:
-        if (
-            self.custom_config
-            and "daemon" in self.custom_config
-            and "ifname" in self.custom_config["daemon"]
-        ):
-            return self.custom_config["ifname"]
+        if self.__custom_config and "daemon.ifname" in self.__custom_config:
+            return self.__custom_config["daemon.ifname"]
 
         return "aronet"
 

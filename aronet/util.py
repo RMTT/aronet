@@ -73,3 +73,13 @@ def dump_message(data: dict) -> bytes:
 
 def srv6_dx4_from_net(net: ipaddress.ip_network, suffix: int):
     return ipaddress.ip_interface(f"{net.network_address + suffix}/128")
+
+
+def path_exists_in_dict(path: str, data: dict):
+    keys = path.split(".")
+
+    t = data
+    for p in keys:
+        t = data.get(p)
+        if not t:
+            raise KeyError(f"{path} doesn't exist in {data}")

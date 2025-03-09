@@ -8,7 +8,8 @@
     ],
     "use_netns": true,
     "network": "fd67::1/64",
-    "extra_ip": ["192.168.129.1/32"]
+    "extra_ip": ["192.168.129.1/32"],
+    "ifname": "test"
   },
   "endpoints": [
     {
