@@ -326,7 +326,7 @@ class Strongswan(Daemon):
                                     "updown": self._config.updown_path,
                                     "dpd_action": "restart",
                                     "start_action": "start",
-                                    "close_action": "start",
+                                    "close_action": "none",
                                 }
                             },
                         }
