@@ -278,7 +278,7 @@ class Strongswan(Daemon):
                     for remote in node["endpoints"]:
                         remote_ip = remote["address"]
 
-                        if remote_ip is None and local_id is None:
+                        if remote_ip is None and local_ip is None:
                             continue
 
                         if not same_address_family(local, remote):
@@ -326,7 +326,7 @@ class Strongswan(Daemon):
                                     "updown": self._config.updown_path,
                                     "dpd_action": "restart",
                                     "start_action": "start",
-                                    "close_action": "none",
+                                    "close_action": "none" if local_ip else "start",
                                 }
                             },
                         }
