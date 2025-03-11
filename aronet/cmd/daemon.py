@@ -171,6 +171,12 @@ class DaemonCommand(BaseCommand):
         self.clean_netlink_resources(nl)
 
         self.logger.info(f"create main interface {self.config.ifname}...")
+        extra_addr = list(
+            map(
+                lambda ip: {"address": ip.with_prefixlen},
+                self.config.main_if_extra_ip,
+            )
+        )
         if self.config.use_netns:
             netns = self.config.netns_name
             nl.add_netns(netns)
@@ -178,8 +184,14 @@ class DaemonCommand(BaseCommand):
             # create the main interfaces(veth pair in case) for connectivity
             nl.create_interface(
                 ifname=self.config.ifname,
-                addresses=[self.config.main_if_addr.with_prefixlen]
-                + list(map(lambda ip: ip.with_prefixlen, self.config.main_if_extra_ip)),
+                addrs=[
+                    {
+                        "local": self.config.main_if_addr.ip.exploded,
+                        "mask": 128,
+                        "address": self.config.netns_peeraddr.ip.exploded,
+                    }
+                ]
+                + extra_addr,
                 kind="veth",
                 peer={
                     "ifname": self.config.ifname,
@@ -189,9 +201,13 @@ class DaemonCommand(BaseCommand):
             nl.interface_wait_and_set(
                 netns=netns,
                 ifname=self.config.ifname,
-                addresses=[
-                    self.config.netns_peeraddr.with_prefixlen,
-                    self.config.netns_peeraddr_v4.with_prefixlen,
+                addrs=[
+                    {
+                        "address": self.config.main_if_addr.ip.exploded,
+                        "mask": 128,
+                        "local": self.config.netns_peeraddr.ip.exploded,
+                    },
+                    {"address": self.config.netns_peeraddr_v4.with_prefixlen},
                 ],
             )
 
@@ -225,8 +241,8 @@ class DaemonCommand(BaseCommand):
                 kind="vrf",
                 ifname=self.config.ifname,
                 vrf_table=self.config.vrf_route_table,
-                addresses=[self.config.main_if_addr.with_prefixlen]
-                + list(map(lambda ip: ip.with_prefixlen, self.config.main_if_extra_ip)),
+                addrs=[{"address": self.config.main_if_addr.with_prefixlen}]
+                + extra_addr,
             )
 
         self.__setup_srv6(nl)

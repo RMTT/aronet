@@ -30,16 +30,17 @@ launch_container() {
         aronet:test aronet daemon run -c /config/"$name"/config.json -r /config/registry.json
     echo "done!"
 }
+
 setup() {
     echo "trying to create network..."
     eval "$DOCKER" network create --subnet=172.32.0.0/16 aronet
     echo "done!"
 
+    launch_container sun 172.32.0.3
+
     launch_container moon 172.32.0.2
 
     launch_container earth 172.32.0.4
-
-    launch_container sun 172.32.0.3
 
     launch_container mars 172.32.0.5
 }
@@ -91,6 +92,6 @@ test_connectivity() {
 
 cleanup
 setup
-sleep 3
+sleep 5
 test_connectivity
 cleanup

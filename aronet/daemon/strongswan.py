@@ -64,6 +64,7 @@ class Strongswan(Daemon):
         self.__vici = None
         self.__vici_listening = None
         self.__tasks = None
+        self.__connections = None
 
         self.__event_handlers = {"ike-updown": self.__updown}
 
@@ -145,6 +146,29 @@ class Strongswan(Daemon):
         super().__del__()
         self._logger.debug("delete strongswan object in daemon")
 
+    async def __check_sas(self):
+        while True:
+            await asyncio.sleep(5)
+
+            known_sas = set()
+            for sa in self.__vici.list_sas():
+                known_sas.add(*sa.keys())
+
+            for key, conn in self.__connections.items():
+                if "%any" not in conn["remote_addrs"] and key not in known_sas:
+                    self._logger.info(f"{key} has not been initiated, trying...")
+                    result = self.__vici.initiate(
+                        {
+                            "child": "default",
+                            "ike": key,
+                            "timeout": -1,
+                            "init-limits": False,
+                        }
+                    )
+
+                    for _ in result:
+                        pass
+
     async def run(self):
         with open(self._config.strongsconf_path, "w") as f:
             f.write(Strongswan.CONF_TEMP.format(self._config.vici_socket_path))
@@ -191,6 +215,7 @@ class Strongswan(Daemon):
             read_stream(self.process.stdout, self.__process_output, self._config),
             read_stream(self.process.stderr, self.__process_output, self._config),
             self.__async_listen(self.__events),
+            self.__check_sas(),
         )
 
         await self.__tasks
@@ -333,6 +358,7 @@ class Strongswan(Daemon):
                         name_set.add(connection_name)
 
         self.__vici.load_conn(connection)
+        self.__connections = connection
 
         delete_set = set()
         for conn in self.__vici.list_conns():

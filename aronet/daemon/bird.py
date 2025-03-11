@@ -21,6 +21,7 @@ class Bird(Daemon):
 
         protocol kernel {{
           kernel table {route_table};
+          learn off;
           ipv6 sadr {{
             export where source = RTS_BABEL;
             import none;
@@ -29,6 +30,7 @@ class Bird(Daemon):
 
         protocol kernel {{
           kernel table {route_table};
+          learn off;
           ipv4 {{
             export where source = RTS_BABEL;
             import none;

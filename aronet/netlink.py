@@ -51,7 +51,7 @@ class Netlink:
                 ns.remove()
 
     def create_interface(
-        self, ifname: str, netns: str = "localhost", addresses: list[str] = [], **kwargs
+        self, ifname: str, netns: str = "localhost", addrs: list[dict] = [], **kwargs
     ):
         if "state" not in kwargs:
             kwargs["state"] = "up"
@@ -59,23 +59,19 @@ class Netlink:
         r = ns.link("add", ifname=ifname, **kwargs)
         idx = self.get_interface_index(netns=netns, ifname=ifname)
 
-        for addr in addresses:
-            ip = addr.split("/")[0]
-            len = str(addr.split("/")[1])
-            ns.addr("add", index=idx, address=ip, prefixlen=len)
+        for addr in addrs:
+            ns.addr("add", index=idx, **addr)
 
         return r
 
     def interface_wait_and_set(
-        self, ifname: str, netns: str = "localhost", addresses: list[str] = [], **kwargs
+        self, ifname: str, netns: str = "localhost", addrs: list[dict] = [], **kwargs
     ):
         ns = self._netns_dict[netns]
         i = ns.poll(ns.link, "dump", ifname=ifname)[0]
         idx = i["index"]
-        for addr in addresses:
-            ip = addr.split("/")[0]
-            len = str(addr.split("/")[1])
-            ns.addr("add", index=idx, address=ip, prefixlen=len)
+        for addr in addrs:
+            ns.addr("add", index=idx, **addr)
 
         if "state" not in kwargs:
             kwargs["state"] = "up"
