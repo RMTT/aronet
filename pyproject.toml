@@ -2,7 +2,7 @@
 name = "aronet"
 description = "Auto routed full mesh overlay networks."
 readme = "README.md"
-version = "v0.1-beta"
+version = "v0.1-beta1"
 requires-python = ">= 3.10"
 dependencies = [
     "cryptography",
