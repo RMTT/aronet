@@ -9,14 +9,11 @@
       in with pkgs; {
         devShells.default = mkShell {
           inputsFrom = [ strongswan ];
-          packages = [ pkgs.python3 ncurses readline ];
+          packages = [ ncurses readline rustup rust-analyzer-unwrapped lldb ];
           nativeBuildInputs = [ meson ninja ];
 
           shellHook = ''
-            if [ ! -d .venv ]; then
-              python -m venv .venv
-            fi
-            source .venv/bin/activate
+            export SHELL=/run/current-system/sw/bin/bash
           '';
         };
       });

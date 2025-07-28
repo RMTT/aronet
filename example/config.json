@@ -1,15 +1,13 @@
 {
-  "private_key": "/home/mt/Projects/aronet/example/config.json",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMC4CAQAwBQYDK2VwBCIEINWlTiVYz8YqhHQ2Gl1mNVNlZ5iH/Y31jZFluWhLkWv/\n-----END PRIVATE KEY-----",
   "organization": "example",
   "common_name": "host-01",
   "daemon": {
-    "prefixs": [
-      "192.168.128.1/24",
+    "extra_network": [
       "240e::1/60"
     ],
     "network": "fd00::1/64",
-    "use_netns": true,
-    "extra_ip": ["192.168.128.1/32"]
+    "mode": "vrf"
   },
   "endpoints": [
     {

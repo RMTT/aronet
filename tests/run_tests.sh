@@ -27,8 +27,12 @@ launch_container() {
         --net aronet \
         --ip "$ip" \
         -v "$SCRIPT_DIR"/config:/config \
-        aronet:test aronet daemon run -c /config/"$name"/config.json -r /config/registry.json
+        aronet:test aronet -c /config/"$name"/config.json -r /config/registry.json daemon run
     echo "done!"
+}
+
+enable_nat() {
+    docker exec "$1" nft add rule nat POSTROUTING masquerade
 }
 
 setup() {
@@ -37,12 +41,16 @@ setup() {
     echo "done!"
 
     launch_container sun 172.32.0.3
+    enable_nat sun
 
     launch_container moon 172.32.0.2
+    enable_nat moon
 
     launch_container earth 172.32.0.4
+    enable_nat earth
 
     launch_container mars 172.32.0.5
+    enable_nat mars
 }
 
 cleanup() {
@@ -80,18 +88,18 @@ load_conn() {
 }
 
 test_connectivity() {
-    eval "$DOCKER" exec earth ping -c 5 192.168.129.1
-    eval "$DOCKER" exec moon ping -c 5 192.168.129.1
+    eval "$DOCKER" exec earth ip vrf exec test ping -c 5 192.168.129.1
+    eval "$DOCKER" exec moon ip vrf exec test ping -c 5 192.168.129.1
     eval "$DOCKER" exec sun ping -c 5 192.168.128.1
 
-    eval "$DOCKER" exec moon aronet swanctl --list-sas
-    eval "$DOCKER" exec moon aronet swanctl --list-conns
+    eval "$DOCKER" exec moon aronet -c /config/moon/config.json swanctl --list-sas
+    eval "$DOCKER" exec moon aronet -c /config/moon/config.json swanctl --list-conns
 
     echo "moon and sun are successfully connectted!"
 }
 
 cleanup
 setup
-sleep 5
+sleep 15
 test_connectivity
 cleanup

@@ -3,12 +3,12 @@
   "organization": "test1",
   "common_name": "earth",
   "daemon": {
-    "prefixs": [
+    "extra_network": [
       "192.168.130.1/24"
     ],
-    "use_netns": false,
+    "mode": "vrf",
     "network": "fd68::1/64",
-    "extra_ip": ["192.168.130.1/32"],
+    "extra_ip": ["192.168.130.1"],
     "ifname": "test"
   },
   "endpoints": [

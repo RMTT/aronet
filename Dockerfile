@@ -1,22 +1,15 @@
-FROM debian:12 AS builder
-
-# python env
-RUN apt update && apt install -y python3 python3-pip python3-venv && python3 -m venv /venv
+FROM rust:slim-trixie AS builder
 
 # tools for compiling
-RUN apt install -y git gcc automake autoconf libtool pkg-config gettext perl gperf flex bison libssl-dev ninja-build libncurses-dev libreadline-dev
+RUN apt update && apt install -y git gcc automake autoconf libtool pkg-config gettext perl gperf flex bison libssl-dev ninja-build libncurses-dev libreadline-dev meson
 
 COPY . /app
-
-ENV PATH="/venv/bin:$PATH"
-
 WORKDIR /app
-RUN pip install .
 
-FROM debian:12 AS runner
-RUN apt update && apt install -y python3 iproute2 iputils-ping tcpdump gdb procps curl nftables iperf3 vim systemtap net-tools
+RUN meson setup build && meson compile -C build && meson install -C build
 
-COPY --from=builder /venv /venv
+FROM rust:slim-trixie AS runner
+RUN apt update && apt install -y iproute2 iputils-ping tcpdump gdb procps curl nftables iperf3 vim systemtap net-tools
 
-ENV PATH="/venv/bin:$PATH"
-
+COPY --from=builder /usr/local/bin/aronet /usr/local/bin/aronet
+COPY --from=builder /usr/local/libexec /usr/local/libexec

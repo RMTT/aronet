@@ -1,6 +1,6 @@
 [
   {
-    "public_key": "-- raw pem of public key --",
+    "public_key": "-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEASCV1oi1Fu7jK31pSvMq1ofahu9BRI9O7zsZZ2bpdmJo=\n-----END PUBLIC KEY-----",
     "organization": "example",
     "nodes": [
       {
@@ -9,23 +9,22 @@
           {
             "address": "2.2.2.2",
             "port": 12345,
+            "serial_number": 0
           },
           {
             "address": "::1",
-            "port": 12345
+            "port": 12345,
+            "serial_number": 1
           }
         ],
         "remarks": {
-          "network": "fd66::1/64",
-          "prefixs": [
-            "192.168.128.1/24"
-          ]
+          "network": "fd66::1/64"
         }
       }
     ]
   },
   {
-    "public_key": "-- raw pem of public key --",
+    "public_key": "-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEAgsODQENIjHqks45F0U3tcJbg5rp1bQvb93z3aP75y/c=\n-----END PUBLIC KEY-----",
     "organization": "example2",
     "nodes": [
       {
@@ -33,16 +32,18 @@
         "endpoints": [
           {
             "address": "1.1.1.2",
-            "port": 12345
+            "port": 12345,
+            "serial_number": 0
           },
           {
             "address": "::1",
-            "port": 12345
+            "port": 12345,
+            "serial_number": 1
           }
         ],
         "remarks": {
           "network": "fd67::1/64",
-          "prefixs": [
+          "extra_network": [
             "192.168.129.1/24"
           ]
         }

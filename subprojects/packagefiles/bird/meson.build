@@ -14,12 +14,10 @@ configure_options = [
 
 run_command('./configure', configure_options, check: true)
 
-pymod = import('python')
-python = pymod.find_installation('python')
 custom_target('bird',
   command: [ './build.sh', '@CURRENT_SOURCE_DIR@', '@OUTDIR@' ],
   build_by_default: true,
   install: true,
-  install_dir: python.get_install_dir() / 'aronet/libexec',
+  install_dir: 'libexec',
   output: [ 'bird', 'birdcl' ]
   )

@@ -3,12 +3,11 @@
   "organization": "test1",
   "common_name": "moon",
   "daemon": {
-    "prefixs": [
+    "extra_network": [
       "192.168.128.1/24"
     ],
-    "use_netns": false,
     "network": "fd66::1/64",
-    "extra_ip": ["192.168.128.1/32"],
+    "extra_ip": ["192.168.128.1"],
     "ifname": "test"
   },
   "endpoints": [

@@ -10,3 +10,4 @@ test.py
 .ruff_cache
 .vagrant
 .tmp
+target

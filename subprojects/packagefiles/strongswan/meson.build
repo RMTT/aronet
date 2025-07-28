@@ -38,22 +38,10 @@ endif
 
 run_command('./configure', configure_options, check: true)
 
-pymod = import('python')
-python = pymod.find_installation('python')
 custom_target('strongswan',
   command: ['./build.sh', '@CURRENT_SOURCE_DIR@', '@OUTDIR@'],
   build_by_default: true,
   install: true,
-  install_dir: python.get_install_dir() / 'aronet/libexec',
+  install_dir: 'libexec',
   output: [ 'charon', 'swanctl' ]
   )
-
-python_sources = [
-  'src/libcharon/plugins/vici/python/vici/__init__.py',
-  'src/libcharon/plugins/vici/python/vici/command_wrappers.py',
-  'src/libcharon/plugins/vici/python/vici/exception.py',
-  'src/libcharon/plugins/vici/python/vici/protocol.py',
-  'src/libcharon/plugins/vici/python/vici/session.py',
-  ]
-
-python.install_sources(python_sources, subdir: 'vici', preserve_path: false)
