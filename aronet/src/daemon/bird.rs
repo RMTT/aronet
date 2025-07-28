@@ -1,5 +1,5 @@
 use adler2::Adler32;
-use std::{path::PathBuf, pin::Pin, process::Stdio};
+use std::{path::PathBuf, process::Stdio};
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 
 use log::info;

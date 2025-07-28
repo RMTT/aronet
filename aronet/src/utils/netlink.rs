@@ -1,20 +1,18 @@
 use std::{
     collections::HashMap,
     fmt::{Debug, Display},
-    net::{IpAddr, Ipv4Addr},
+    net::IpAddr,
     os::fd::{AsFd, AsRawFd},
 };
 
 use futures::stream::TryStreamExt;
-use log::info;
 use netlink_packet_route::{
-    AddressFamily,
     link::LinkFlags,
-    route::{RouteAttribute, RouteMessage, RouteScope, RouteType},
+    route::{RouteAttribute, RouteScope, RouteType},
 };
 use nix::sched::CloneFlags;
 use rtnetlink::{
-    Handle, LinkMessageBuilder, LinkUnspec, LinkVeth, LinkVrf, LinkXfrm, NetworkNamespace,
+    Handle, LinkUnspec, LinkVeth, LinkVrf, LinkXfrm, NetworkNamespace,
     RouteMessageBuilder, new_connection, packet_route::link::LinkMessage,
 };
 use tokio::fs::{self, File};

@@ -2,7 +2,6 @@ pub mod configuration;
 pub mod netlink;
 pub mod vici;
 
-use log::info;
 use std::{
     fmt::Display,
     net::{IpAddr, Ipv4Addr, Ipv6Addr},
