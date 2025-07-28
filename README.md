@@ -31,22 +31,22 @@ To run aronet, you need two files basically:
  `config.json` contains basic configuration for running aronet, example:
  
  ```json
-{
-  "private_key": "./test/config/moon/private.pem",
+ {
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMC4CAQAwBQYDK2VwBCIEINWlTiVYz8YqhHQ2Gl1mNVNlZ5iH/Y31jZFluWhLkWv/\n-----END PRIVATE KEY-----",
   "organization": "example",
   "common_name": "host-01",
   "daemon": {
-    "prefixs": [
-      "192.168.128.1/24"
+    "extra_network": [
+      "240e::1/60"
     ],
-    "use_netns": false,
-    "network": "fd66::1/64" # must be a v6 network with prefix less or equal to 64
+    "network": "fd00::1/64",
+    "mode": "vrf"
   },
-  # endpoints are some ip:port pairs for establishing tunnels with other nodes in a registry
   "endpoints": [
     {
       "address": "1.1.1.1",
       "port": 12025,
+      "serial_number": 0
     },
     {
       "address_family": "ip6",
@@ -74,7 +74,7 @@ Note that `aronet` will reserve the `{daemon.network}:ffff::/80` range for inter
 ```json
 [
   {
-    "public_key": "-- raw pem of public key --",
+    "public_key": "-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEASCV1oi1Fu7jK31pSvMq1ofahu9BRI9O7zsZZ2bpdmJo=\n-----END PUBLIC KEY-----",
     "organization": "example",
     "nodes": [
       {
@@ -83,23 +83,22 @@ Note that `aronet` will reserve the `{daemon.network}:ffff::/80` range for inter
           {
             "address": "2.2.2.2",
             "port": 12345,
+            "serial_number": 0
           },
           {
             "address": "::1",
-            "port": 12345
+            "port": 12345,
+            "serial_number": 1
           }
         ],
         "remarks": {
-          "prefixs": [
-            "192.168.128.1/24"
-          ],
           "network": "fd66::1/64"
         }
       }
     ]
   },
   {
-    "public_key": "-- raw pem of public key --",
+    "public_key": "-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEAgsODQENIjHqks45F0U3tcJbg5rp1bQvb93z3aP75y/c=\n-----END PUBLIC KEY-----",
     "organization": "example2",
     "nodes": [
       {
@@ -107,18 +106,20 @@ Note that `aronet` will reserve the `{daemon.network}:ffff::/80` range for inter
         "endpoints": [
           {
             "address": "1.1.1.2",
-            "port": 12345
+            "port": 12345,
+            "serial_number": 0
           },
           {
             "address": "::1",
-            "port": 12345
+            "port": 12345,
+            "serial_number": 1
           }
         ],
         "remarks": {
-          "prefixs": [
+          "network": "fd67::1/64",
+          "extra_network": [
             "192.168.129.1/24"
-          ],
-          "network": "fd67::1/64"
+          ]
         }
       }
     ]
