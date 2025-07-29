@@ -8,7 +8,9 @@
     ],
     "mode": "vrf",
     "network": "fd68::1/64",
-    "extra_ip": ["192.168.130.1"],
+    "extra_ip": [
+      "192.168.130.1"
+    ],
     "ifname": "test"
   },
   "endpoints": [

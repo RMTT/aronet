@@ -3,6 +3,7 @@ use std::{
     env::current_exe,
     net::{IpAddr, Ipv4Addr, Ipv6Addr},
     path::PathBuf,
+    str::FromStr,
 };
 
 use serde::{Deserialize, Serialize};
@@ -48,7 +49,7 @@ impl Default for DaemonMode {
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct EndpointsConfig {
-    pub address: Option<IpAddr>,
+    pub address: Option<String>,
     pub port: u16,
     pub serial_number: u32,
     pub address_family: Option<AddressFamily>,
@@ -62,13 +63,19 @@ impl EndpointsConfig {
     }
 
     pub fn address_family(&self) -> AddressFamily {
-        if let Some(i) = self.address {
-            if i.is_ipv4() {
-                AddressFamily::Ip4
-            } else {
-                AddressFamily::Ip6
+        if let Some(i) = &self.address {
+            let ip_result = IpAddr::from_str(&i);
+
+            // address could be domain name
+            if let Ok(ip) = ip_result {
+                if ip.is_ipv4() {
+                    return AddressFamily::Ip4;
+                } else {
+                    return AddressFamily::Ip6;
+                }
             }
-        } else if let Some(i) = self.address_family {
+        }
+        if let Some(i) = self.address_family {
             i
         } else {
             // default address family
@@ -78,7 +85,7 @@ impl EndpointsConfig {
 
     pub fn get_address(&self) -> Vec<String> {
         if self.address.is_some() {
-            vec![self.address.unwrap().to_string()]
+            vec![self.address.clone().unwrap()]
         } else {
             vec![]
         }
