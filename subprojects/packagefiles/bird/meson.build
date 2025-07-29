@@ -18,6 +18,6 @@ custom_target('bird',
   command: [ './build.sh', '@CURRENT_SOURCE_DIR@', '@OUTDIR@' ],
   build_by_default: true,
   install: true,
-  install_dir: 'libexec',
+  install_dir: 'libexec/aronet',
   output: [ 'bird', 'birdcl' ]
   )

@@ -21,7 +21,9 @@ configure_options = [
   '--disable-resolve',
   '--disable-xauth-generic',
   '--disable-systemd',
-  '--disable-cert-enroll-timer'
+  '--disable-cert-enroll-timer',
+  '--disable-python-wheels',
+  '--disable-python-eggs'
   ]
 
 if build_machine.system() == 'darwin'
@@ -44,6 +46,6 @@ custom_target('strongswan',
   command: ['./build.sh', '@CURRENT_SOURCE_DIR@', '@OUTDIR@'],
   build_by_default: true,
   install: true,
-  install_dir: 'libexec',
+  install_dir: 'libexec/aronet',
   output: [ 'charon', 'swanctl' ]
   )

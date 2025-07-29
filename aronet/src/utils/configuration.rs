@@ -147,6 +147,7 @@ impl Config {
                 .parent()
                 .unwrap()
                 .join("libexec")
+                .join("aronet")
                 .join("charon")
         }
     }
@@ -162,6 +163,7 @@ impl Config {
                 .parent()
                 .unwrap()
                 .join("libexec")
+                .join("aronet")
                 .join("bird")
         }
     }
@@ -177,6 +179,7 @@ impl Config {
                 .parent()
                 .unwrap()
                 .join("libexec")
+                .join("aronet")
                 .join("birdcl")
         }
     }
@@ -189,6 +192,7 @@ impl Config {
             .parent()
             .unwrap()
             .join("libexec")
+            .join("aronet")
             .join("swanctl")
     }
 
