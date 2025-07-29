@@ -20,7 +20,8 @@ configure_options = [
   '--disable-cmac',
   '--disable-resolve',
   '--disable-xauth-generic',
-  '--disable-systemd'
+  '--disable-systemd',
+  '--disable-cert-enroll-timer'
   ]
 
 if build_machine.system() == 'darwin'
