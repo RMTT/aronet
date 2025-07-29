@@ -281,17 +281,18 @@ impl<'a> Strongswan<'a> {
         if self.private_key.starts_with("-----BEGIN PRIVATE KEY-----") {
             private_key = self.private_key;
         } else {
-            private_stirng = fs::read_to_string(self.private_key).unwrap();
+            private_stirng =
+                fs::read_to_string(self.private_key).expect("failed to read private key from file");
             private_key = private_stirng.as_str();
         }
         vici.load_key(&private_key).await.unwrap();
 
         // load connections
         let local_name = format!("{}-{}", self.organizaton, self.common_name);
-        let pubkey_pem = openssl::pkey::PKey::private_key_from_pem(self.private_key.as_bytes())
-            .unwrap()
+        let pubkey_pem = openssl::pkey::PKey::private_key_from_pem(private_key.as_bytes())
+            .expect("failed to derive pubkey from private key")
             .public_key_to_pem()
-            .unwrap();
+            .expect("failed to derive pubkey from private key");
         let pubkey_str = str::from_utf8(&pubkey_pem).unwrap();
         let mut connections_name: Vec<String> = Vec::new();
         for local in self.endpoints {

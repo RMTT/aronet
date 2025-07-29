@@ -1,5 +1,5 @@
 {
-  "private_key": "-----BEGIN PRIVATE KEY-----\nMC4CAQAwBQYDK2VwBCIEINWlTiVYz8YqhHQ2Gl1mNVNlZ5iH/Y31jZFluWhLkWv/\n-----END PRIVATE KEY-----",
+  "private_key": "/home/mt/Projects/aronet/example/private.key",
   "organization": "example",
   "common_name": "host-01",
   "daemon": {
@@ -7,7 +7,7 @@
       "240e::1/60"
     ],
     "network": "fd00::1/64",
-    "mode": "vrf"
+    "mode": "netns"
   },
   "endpoints": [
     {
