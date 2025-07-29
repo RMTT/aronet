@@ -19,7 +19,8 @@ configure_options = [
   '--disable-xcbc',
   '--disable-cmac',
   '--disable-resolve',
-  '--disable-xauth-generic'
+  '--disable-xauth-generic',
+  '--disable-systemd'
   ]
 
 if build_machine.system() == 'darwin'
