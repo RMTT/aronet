@@ -9,5 +9,6 @@ custom_target('aronet',
   build_by_default: true,
   install: true,
   install_dir: 'bin',
+  install_tag: ['bin'],
   output: [ 'aronet' ]
   )

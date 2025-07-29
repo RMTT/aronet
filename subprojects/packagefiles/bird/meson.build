@@ -1,4 +1,4 @@
-project('bird', 'c', meson_version : '>=0.56.0')
+project('bird', 'c', meson_version : '>=0.60.0')
 
 autoheader = find_program('autoheader', required: true)
 autoconf = find_program('autoconf', required: true)
@@ -19,5 +19,6 @@ custom_target('bird',
   build_by_default: true,
   install: true,
   install_dir: 'libexec/aronet',
+  install_tag: ['bin'],
   output: [ 'bird', 'birdcl' ]
   )
