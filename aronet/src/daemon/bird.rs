@@ -13,7 +13,7 @@ use super::Daemon;
 macro_rules! BIRD_CONF {
     () => {
         r#"
-log stderr all;
+log stderr {{fatal}};
 ipv6 sadr table sadr6;
 router id {router_id};
 
@@ -165,11 +165,13 @@ impl<'a> Bird<'a> {
         if self.daemon_mode == DaemonMode::Netns {
             nl.pushns(&self.netns).unwrap();
         }
+        info!("starting bird...");
         let mut bird = tokio::process::Command::new(self.bird_path.as_path())
             .arg("-c")
             .arg(self.conf_path.as_path())
             .arg("-f")
             .stderr(Stdio::piped())
+            .stdout(Stdio::null())
             .spawn()
             .expect("cannot launch bird");
 
