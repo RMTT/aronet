@@ -169,7 +169,7 @@ impl<'a> Strongswan<'a> {
                         // must create xfrm in the netns which charon running, then move this
                         // interface to another netns
 
-                        let if_id = sa.if_id_in.parse::<u32>();
+                        let if_id = u32::from_str_radix(&sa.if_id_in, 16);
                         if if_id.is_err() {
                             warn!(
                                 "parse if_id_in failed for sa {} from {}",
