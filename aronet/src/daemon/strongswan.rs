@@ -168,14 +168,16 @@ impl<'a> Strongswan<'a> {
                     DaemonMode::Netns => {
                         // must create xfrm in the netns which charon running, then move this
                         // interface to another netns
-                        r = nl
-                            .create_xfrm(
-                                &xfrm_name,
-                                sa.if_id_in.parse::<u32>().unwrap(),
-                                None,
-                                None,
-                            )
-                            .await;
+
+                        let if_id = sa.if_id_in.parse::<u32>();
+                        if if_id.is_err() {
+                            warn!(
+                                "parse if_id_in failed for sa {} from {}",
+                                entry.0, sa.if_id_in
+                            );
+                            continue;
+                        }
+                        r = nl.create_xfrm(&xfrm_name, if_id.unwrap(), None, None).await;
                         if nl
                             .move_link_to_netns(&xfrm_name, &self.netns)
                             .await
