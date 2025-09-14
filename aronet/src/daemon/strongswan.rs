@@ -239,6 +239,12 @@ impl<'a> Strongswan<'a> {
         loop {
             tokio::select! {
                 v = stream.try_next() => {
+                    debug!("receive updown events: {v:?}");
+                    if v.is_err() {
+                        warn!("parse updown event failed");
+                        continue;
+                    }
+
                     if let Some(event) = v.unwrap() {
                         self.handle_updown_event(&event, &netlink).await;
                     }
