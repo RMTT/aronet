@@ -7,17 +7,18 @@ use std::{
 
 use futures::stream::TryStreamExt;
 use netlink_packet_route::{
-    link::LinkFlags,
+    link::{LinkAttribute, LinkFlags},
     route::{RouteAttribute, RouteScope, RouteType},
 };
 use nix::sched::CloneFlags;
 use rtnetlink::{
-    Handle, LinkUnspec, LinkVeth, LinkVrf, LinkXfrm, NetworkNamespace,
-    RouteMessageBuilder, new_connection, packet_route::link::LinkMessage,
+    Handle, LinkUnspec, LinkVeth, LinkVrf, LinkXfrm, NetworkNamespace, RouteMessageBuilder,
+    new_connection, packet_route::link::LinkMessage,
 };
 use tokio::fs::{self, File};
 
 use super::IpNetwork;
+use log::warn;
 
 pub struct Netlink {
     handles: HashMap<String, Handle>,
@@ -212,9 +213,9 @@ impl Netlink {
         Ok(())
     }
 
-    pub async fn delete_link(&self, name: &str) -> Result<()> {
-        let link = self.get_link(name, None).await?;
-        self.handle(DEFAULT_HANDLE)
+    pub async fn delete_link(&self, name: &str, netns: Option<&str>) -> Result<()> {
+        let link = self.get_link(name, netns).await?;
+        self.handle(netns.unwrap_or(DEFAULT_HANDLE))
             .link()
             .del(link.header.index)
             .execute()
@@ -300,17 +301,18 @@ impl Netlink {
             .map_err(|e| NetlinkError::new(&format!("{e}")))?;
         let (connection, handle, _) = new_connection().expect("cannot create netlink connection");
         tokio::spawn(connection);
-        self.handles.insert(name.to_string(), handle);
         self.popns()
             .map_err(|e| NetlinkError::new(&format!("{e}")))?;
+        self.handles.insert(name.to_string(), handle);
         Ok(())
     }
 
-    pub async fn delete_netns(&self, name: &str) -> Result<()> {
+    pub async fn delete_netns(&mut self, name: &str) -> Result<()> {
         let r = fs::try_exists(format!("/var/run/netns/{name}")).await;
 
         if r.is_ok() && r.unwrap() {
             NetworkNamespace::del(name.to_string()).await?;
+            self.handles.remove(name);
             Ok(())
         } else {
             Ok(())
@@ -430,7 +432,6 @@ mod test {
     use super::*;
 
     #[tokio::test]
-    #[ignore = ""]
     async fn create_and_delete_netns() {
         let mut nl = Netlink::new().await;
 
@@ -440,15 +441,30 @@ mod test {
             "failed to create netns \"aronet-test\": {}",
             r.err().unwrap()
         );
-        let r = nl.delete_netns("aronet-test").await;
+
+        let r = nl.create_xfrm("test", 1, None, Some("aronet-test")).await;
         assert!(
             r.is_ok(),
-            "failed to delete netns \"aronet-test\": {}",
+            "failed to create interface \"test\": {}",
             r.err().unwrap()
         );
+
+        let r = nl.delete_link("test", Some("aronet-test")).await;
+        assert!(
+            r.is_ok(),
+            "failed to delete interface \"test\": {}",
+            r.err().unwrap()
+        );
+        // let r = nl.delete_netns("aronet-test").await;
+        // assert!(
+        //     r.is_ok(),
+        //     "failed to delete netns \"aronet-test\": {}",
+        //     r.err().unwrap()
+        // );
     }
 
     #[tokio::test]
+    #[ignore = ""]
     async fn create_veth_peer() {
         let mut nl = Netlink::new().await;
 

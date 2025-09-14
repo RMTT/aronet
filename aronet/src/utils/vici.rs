@@ -208,7 +208,7 @@ impl Client {
             remote_port: remote.port,
             encap: true,
             mobike: false,
-            dpd_delay: 10,
+            dpd_delay: 5,
             keyingtries: 0,
             unique: "replace",
             if_id_in: "%unique",

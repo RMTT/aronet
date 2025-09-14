@@ -1,4 +1,6 @@
+use std::cell::RefCell;
 use std::fs;
+use std::rc::Rc;
 use std::{path::PathBuf, process::Stdio};
 
 use base64::Engine;
@@ -67,11 +69,17 @@ pub struct Strongswan<'a> {
     ifname: &'a str,
     daemon_mode: DaemonMode,
     netns: String,
+    netlink: Rc<RefCell<Netlink>>,
     cancel_token: CancellationToken,
 }
 
 impl<'a> Strongswan<'a> {
-    pub fn new(config: &'a Config, registries: &'a Registries, token: CancellationToken) -> Self
+    pub fn new(
+        config: &'a Config,
+        registries: &'a Registries,
+        token: CancellationToken,
+        netlink: Rc<RefCell<Netlink>>,
+    ) -> Self
     where
         Self: Sized,
     {
@@ -90,6 +98,7 @@ impl<'a> Strongswan<'a> {
             daemon_mode: config.daemon.mode,
             netns: config.netns_name(),
             cancel_token: token,
+            netlink,
         }
     }
 
@@ -155,8 +164,10 @@ impl<'a> Strongswan<'a> {
         vici
     }
 
-    pub async fn handle_updown_event(&self, event: &Updown, nl: &Netlink) {
+    pub async fn handle_updown_event(&self, event: &Updown, nl_ref: &RefCell<Netlink>) {
         debug!("ike-updown: {:?}", event);
+
+        let nl = nl_ref.borrow();
 
         for entry in &event.ike_sas {
             let sa = entry.1;
@@ -168,7 +179,6 @@ impl<'a> Strongswan<'a> {
                     DaemonMode::Netns => {
                         // must create xfrm in the netns which charon running, then move this
                         // interface to another netns
-
                         let if_id = u32::from_str_radix(&sa.if_id_in, 16);
                         if if_id.is_err() {
                             warn!(
@@ -204,7 +214,12 @@ impl<'a> Strongswan<'a> {
                     warn!("failed to create link {xfrm_name}: {e}");
                 }
             } else {
-                let r = nl.delete_link(&xfrm_name).await;
+                let ns = if self.daemon_mode == DaemonMode::Netns {
+                    Some(self.netns.as_str())
+                } else {
+                    None
+                };
+                let r = nl.delete_link(&xfrm_name, ns).await;
                 if let Err(e) = r {
                     warn!("failed to delete link {xfrm_name}: {e}");
                 }
@@ -219,12 +234,13 @@ impl<'a> Strongswan<'a> {
 
         let mut stream = Box::pin(vici.subscribe::<Updown>("ike-updown"));
 
-        let nl = Netlink::new().await;
+        let netlink = Rc::clone(&self.netlink);
+        if self.daemon_mode == DaemonMode::Netns {}
         loop {
             tokio::select! {
                 v = stream.try_next() => {
                     if let Some(event) = v.unwrap() {
-                        self.handle_updown_event(&event, &nl).await;
+                        self.handle_updown_event(&event, &netlink).await;
                     }
                 }
                 _ = cancel_token.cancelled() => {

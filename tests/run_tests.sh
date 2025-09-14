@@ -20,6 +20,7 @@ launch_container() {
         --sysctl net.ipv4.ip_forward=1 \
         --sysctl net.ipv4.tcp_l3mdev_accept=1 \
         --sysctl net.ipv4.udp_l3mdev_accept=1 \
+        -e RUST_BACKTRACE=1 \
         -d \
         -it \
         --name "$name" \
